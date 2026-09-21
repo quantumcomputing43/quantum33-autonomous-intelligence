@@ -34,6 +34,15 @@ class MainActivity : ComponentActivity() {
             hint = "Repository owner/name"
             setText("quantumcomputing43/quantum33-autonomous-intelligence")
         }
+        val modelEndpointInput = EditText(this).apply {
+            hint = "LLM endpoint (OpenAI-compatible, optional)"
+        }
+        val modelNameInput = EditText(this).apply {
+            hint = "LLM model name (optional)"
+        }
+        val modelKeyInput = EditText(this).apply {
+            hint = "LLM API key (optional; not persisted yet)"
+        }
         val status = TextView(this).apply {
             text = if (secureStore.has("github_token"))
                 "GitHub credential: configured (encrypted)"
@@ -89,7 +98,10 @@ class MainActivity : ComponentActivity() {
                         command,
                         repoInput.text.toString(),
                         secureStore.get("github_token") ?: "",
-                        true
+                        true,
+                        modelEndpointInput.text.toString().trim(),
+                        modelNameInput.text.toString().trim(),
+                        modelKeyInput.text.toString().trim()
                     ).toString()
                 }
             } else {
@@ -98,7 +110,10 @@ class MainActivity : ComponentActivity() {
                     command,
                     repoInput.text.toString(),
                     secureStore.get("github_token") ?: "",
-                    false
+                    false,
+                    modelEndpointInput.text.toString().trim(),
+                    modelNameInput.text.toString().trim(),
+                    modelKeyInput.text.toString().trim()
                 ).toString()
             }
         }
@@ -107,6 +122,9 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
             addView(repoInput)
+            addView(modelEndpointInput)
+            addView(modelNameInput)
+            addView(modelKeyInput)
             addView(tokenInput)
             addView(saveToken)
             addView(removeToken)
