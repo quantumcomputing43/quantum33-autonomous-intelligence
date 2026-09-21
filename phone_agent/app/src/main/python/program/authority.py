@@ -34,10 +34,20 @@ def decide(envelope: CommandEnvelope) -> Decision:
         return Decision.BLOCK
 
     lowered = envelope.text.lower()
-    if any(term in lowered for term in SCIENTIFIC_TERMS):
+
+    # Scientific analysis is allowed. Changing the scientific contract is not.
+    scientific_mutation = (
+        "change hypothesis", "replace hypothesis", "change mechanism",
+        "change endpoint", "change threshold", "change control",
+        "change null definition", "change inclusion", "change exclusion",
+        "change statistical criterion", "change scientific question",
+        "invent hypothesis", "invent endpoint", "relax threshold",
+        "remove control", "change null"
+    )
+    if any(term in lowered for term in scientific_mutation):
         return Decision.BLOCK
 
-    if any(x in lowered for x in ("write", "commit", "push", "create pull request", "update repository")):
+    if any(x in lowered for x in ("write", "commit", "push", "create pull request", "update repository", "delete file")):
         return (Decision.ALLOW if envelope.explicit_write_authorization
                 else Decision.REQUIRE_HUMAN_AUTHORIZATION)
 
