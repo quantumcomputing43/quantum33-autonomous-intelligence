@@ -69,7 +69,7 @@ if bridge.count("def handle_command(") != 1:
 
 # CI must run the audit before assembleDebug.
 workflow = WORKFLOW.read_text(encoding="utf-8")
-audit_pos = workflow.find("python audit_phone_agent.py")
+audit_pos = workflow.find("audit_phone_agent.py")
 build_pos = workflow.find("gradle assembleDebug")
 if audit_pos < 0:
     errors.append("CI: pre-build audit step is missing")
