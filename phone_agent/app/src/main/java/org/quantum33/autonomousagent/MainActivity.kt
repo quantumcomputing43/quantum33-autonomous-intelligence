@@ -66,7 +66,14 @@ class MainActivity : ComponentActivity() {
 
         val saveToken = Button(this).apply { text = "Save GitHub Credential Securely" }
         val removeToken = Button(this).apply { text = "Remove GitHub Credential" }
+        val saveModel = Button(this).apply { text = "Save LLM Configuration Securely" }
+        val removeModel = Button(this).apply { text = "Remove LLM Configuration" }
         val run = Button(this).apply { text = "Send Command" }
+
+        if (secureStore.has("model_endpoint")) {
+            modelEndpointInput.setText(secureStore.get("model_endpoint") ?: "")
+            modelNameInput.setText(secureStore.get("model_name") ?: "")
+        }
 
         saveToken.setOnClickListener {
             val token = tokenInput.text.toString()
@@ -85,6 +92,31 @@ class MainActivity : ComponentActivity() {
             tokenInput.text.clear()
             status.text = "GitHub credential: not configured"
             output.text = "GitHub credential removed."
+        }
+
+        saveModel.setOnClickListener {
+            val endpoint = modelEndpointInput.text.toString().trim()
+            val model = modelNameInput.text.toString().trim()
+            val key = modelKeyInput.text.toString()
+            if (endpoint.isNotBlank() && model.isNotBlank() && key.isNotBlank()) {
+                secureStore.put("model_endpoint", endpoint)
+                secureStore.put("model_name", model)
+                secureStore.put("model_api_key", key)
+                modelKeyInput.text.clear()
+                output.text = "LLM configuration saved to Android Keystore-backed encrypted storage."
+            } else {
+                output.text = "Endpoint, model name and API key are required."
+            }
+        }
+
+        removeModel.setOnClickListener {
+            secureStore.remove("model_endpoint")
+            secureStore.remove("model_name")
+            secureStore.remove("model_api_key")
+            modelEndpointInput.text.clear()
+            modelNameInput.text.clear()
+            modelKeyInput.text.clear()
+            output.text = "LLM configuration removed."
         }
 
         run.setOnClickListener {
@@ -108,9 +140,9 @@ class MainActivity : ComponentActivity() {
                         repoInput.text.toString(),
                         secureStore.get("github_token") ?: "",
                         true,
-                        modelEndpointInput.text.toString().trim(),
-                        modelNameInput.text.toString().trim(),
-                        modelKeyInput.text.toString().trim()
+                        secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
+                        secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
+                        secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
                     ).toString()
                 }
             } else {
@@ -120,9 +152,9 @@ class MainActivity : ComponentActivity() {
                     repoInput.text.toString(),
                     secureStore.get("github_token") ?: "",
                     false,
-                    modelEndpointInput.text.toString().trim(),
-                    modelNameInput.text.toString().trim(),
-                    modelKeyInput.text.toString().trim()
+                    secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
+                    secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
+                    secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
                 ).toString()
             }
         }
@@ -137,6 +169,8 @@ class MainActivity : ComponentActivity() {
             addView(tokenInput)
             addView(saveToken)
             addView(removeToken)
+            addView(saveModel)
+            addView(removeModel)
             addView(status)
             addView(input)
             addView(run)
