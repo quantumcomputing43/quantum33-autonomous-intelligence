@@ -2,6 +2,10 @@ name: Build Android Phone Agent
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'phone_agent/**'
+      - '.github/workflows/build-phone-agent.yml'
 
 permissions:
   contents: read
