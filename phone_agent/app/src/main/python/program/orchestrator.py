@@ -6,7 +6,7 @@ from program.command_plan import classify_intent, Plan
 from program.ledger import EvidenceLedger
 from program.memory import LocalMemory
 from program.provenance import normalize_evidence
-from program.tool_router import ToolRouter
+from program.tool_router import ToolRouter, ToolSpec
 from program.quantum_tool import run_demo
 
 
@@ -28,7 +28,7 @@ class AgentOrchestrator:
         self.memory = memory or LocalMemory()
         self.router = router or ToolRouter()
         self.router.register(
-            __import__("program.tool_router", fromlist=["ToolSpec"]).ToolSpec(
+            ToolSpec(
                 "quantum_simulation",
                 "Small classical quantum-inspired state-vector simulation",
                 read_only=True,
