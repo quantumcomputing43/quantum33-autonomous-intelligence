@@ -41,9 +41,13 @@ require(SETTINGS, "mavenCentral()", "plugin repository")
 require(MANIFEST, "android.permission.INTERNET", "network permission")
 require(WORKFLOW, "actions/setup-python@v5", "CI Python provisioning")
 
+build = BUILD.read_text(encoding="utf-8")
+if "x86_64" in build:
+    errors.append("RMX3690 ABI contract: x86_64 must not be included in the device-targeted build")
+
 root_build = ROOT_BUILD.read_text(encoding="utf-8")
-m = re.search(r"com\.android\.application['\"]\s+version\s+['\"]([0-9.]+)", root_build)
-c = re.search(r"com\.chaquo\.python['\"]\s+version\s+['\"]([0-9.]+)", root_build)
+m = re.search(r"com\.android\.application['"]\s+version\s+['"]([0-9.]+)", root_build)
+c = re.search(r"com\.chaquo\.python['"]\s+version\s+['"]([0-9.]+)", root_build)
 if not m or not c:
     errors.append("version contract: could not parse AGP/Chaquopy versions")
 else:
@@ -63,7 +67,6 @@ for name in decls:
 if dupes:
     errors.append("Kotlin duplicate declarations: " + ", ".join(sorted(set(dupes))))
 
-# On a 2 GB device, Python should start only when a command is executed.
 if "Python.start(AndroidPlatform(this))" in activity and "private fun getAgent()" not in activity:
     errors.append("Low-memory contract: Python startup must remain deferred to getAgent()")
 
@@ -86,4 +89,4 @@ if errors:
     sys.exit(1)
 
 print("PHONE_AGENT_AUDIT: PASS")
-print("RMX3690 contracts checked: ARM32+ARM64 ABI coverage, Python 3.11, JVM 17, Android API range, low-memory deferred Python startup, manifest/network permission, duplicate Kotlin declarations, bridge entry point, and CI ordering.")
+print("RMX3690 contracts checked: ARM32+ARM64 ABI coverage, no x86_64, Python 3.11, JVM 17, low-memory deferred Python startup, manifest/network permission, duplicate Kotlin declarations, bridge entry point, and CI ordering.")
