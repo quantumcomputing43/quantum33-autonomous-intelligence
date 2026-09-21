@@ -6,21 +6,23 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 
 class MainActivity : ComponentActivity() {
     private lateinit var secureStore: SecureStore
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        secureStore = SecureStore(this)
-
+    private fun getAgent(): PyObject {
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(this))
         }
-        val py = Python.getInstance()
-        val agent = py.getModule("phone_agent_bridge")
+        return Python.getInstance().getModule("phone_agent_bridge")
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        secureStore = SecureStore(this)
 
         val input = EditText(this).apply {
             hint = "Enter an explicit command"
@@ -120,33 +122,28 @@ class MainActivity : ComponentActivity() {
                 command.lowercase().contains("commit") ||
                 command.lowercase().contains("push") ||
                 command.lowercase().contains("pull request")
-            if (explicitWrite) {
-                CommandConfirmation.confirmWrite(
-                    this,
-                    "This command may modify a repository. Authorize this single operation only."
-                ) {
-                    output.text = agent.callAttr(
-                        "handle_command",
-                        command,
-                        repoInput.text.toString(),
-                        secureStore.get("github_token") ?: "",
-                        true,
-                        secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
-                        secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
-                        secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
-                    ).toString()
-                }
-            } else {
-                output.text = agent.callAttr(
+
+            val execute = {
+                output.text = getAgent().callAttr(
                     "handle_command",
                     command,
                     repoInput.text.toString(),
                     secureStore.get("github_token") ?: "",
-                    false,
+                    explicitWrite,
                     secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
                     secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
                     secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
                 ).toString()
+            }
+
+            if (explicitWrite) {
+                CommandConfirmation.confirmWrite(
+                    this,
+                    "This command may modify a repository. Authorize this single operation only.",
+                    execute
+                )
+            } else {
+                execute()
             }
         }
 
