@@ -22,6 +22,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
+      - name: Pre-build phone agent audit
+        working-directory: phone_agent
+        run: python3 audit_phone_agent.py
       - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
