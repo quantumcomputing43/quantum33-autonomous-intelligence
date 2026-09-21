@@ -33,9 +33,13 @@ require(ROOT_BUILD, "com.chaquo.python", "root Gradle")
 require(BUILD, "id 'com.chaquo.python'", "app Gradle plugin")
 require(BUILD, "chaquopy {", "Chaquopy DSL")
 require(BUILD, "version = '3.11'", "Python runtime version")
+require(BUILD, "buildPython 'python3.11'", "Python build interpreter")
+require(BUILD, "jvmToolchain(17)", "Kotlin JVM target")
+require(BUILD, "JavaVersion.VERSION_17", "Java JVM target")
 require(BUILD, "abiFilters 'arm64-v8a', 'x86_64'", "ABI contract")
 require(SETTINGS, "mavenCentral()", "plugin repository")
 require(MANIFEST, "android.permission.INTERNET", "network permission")
+require(WORKFLOW, "actions/setup-python@v5", "CI Python provisioning")
 
 # Chaquopy 16.x + AGP 8.7.x compatibility guard.
 root_build = ROOT_BUILD.read_text(encoding="utf-8")
