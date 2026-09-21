@@ -7,6 +7,7 @@ from program.github_service import GitHubService
 from program.brain import Brain, BrainContext
 from program.model_provider import OpenAICompatibleBackend
 from program.scientific_guard import guard_model_output
+from program.orchestrator import AgentOrchestrator
 
 
 @dataclass
@@ -20,6 +21,7 @@ class AutonomousPhoneRuntime:
     """Phone-hosted orchestration entry point; fail-closed on authority boundaries."""
 
     def __init__(self):
+        self.orchestrator = AgentOrchestrator()
         self.history = []
 
     def handle_human_command(
@@ -42,6 +44,7 @@ class AutonomousPhoneRuntime:
             explicit_write_authorization=explicit_write_authorization,
         )
         decision = decide(envelope)
+        self.orchestrator.record_command(command, repository or None)
 
         if decision is Decision.BLOCK:
             status = "BLOCKED"
@@ -54,39 +57,61 @@ class AutonomousPhoneRuntime:
         else:
             status = "ACCEPTED"
             accepted = True
-            plan = classify_intent(command)
+            plan = self.orchestrator.plan(command)
             evidence = []
 
-            # Read-only repository inspection is available when a credential is configured.
             if "github" in plan.tools and repository and github_token:
                 try:
                     service = GitHubService(github_token)
-                    evidence.append({"source": "github", "kind": "repository", "content": repr(service.repository(repository))})
+                    evidence.append({
+                        "source": "github",
+                        "kind": "repository",
+                        "content": repr(service.repository(repository)),
+                        "confidence": 0.9,
+                    })
                     if any(x in command.lower() for x in ("workflow", "actions", "runs")):
-                        evidence.append({"source": "github", "kind": "workflow_runs", "content": repr(service.workflow_runs(repository))})
+                        evidence.append({
+                            "source": "github",
+                            "kind": "workflow_runs",
+                            "content": repr(service.workflow_runs(repository)),
+                            "confidence": 0.9,
+                        })
                 except Exception as exc:
-                    evidence.append({"source": "github", "kind": "error", "content": str(exc)})
+                    evidence.append({
+                        "source": "github",
+                        "kind": "error",
+                        "content": str(exc),
+                        "confidence": 0.0,
+                    })
 
             backend = None
             if model_endpoint and model_name and model_api_key:
                 try:
                     backend = OpenAICompatibleBackend(model_endpoint, model_name, model_api_key)
                 except Exception as exc:
-                    evidence.append({"source": "model", "kind": "configuration_error", "content": str(exc)})
+                    evidence.append({
+                        "source": "model",
+                        "kind": "configuration_error",
+                        "content": str(exc),
+                        "confidence": 0.0,
+                    })
 
+            ctx = self.orchestrator.context(command, repository or None, evidence)
             brain = Brain(backend)
-            ctx = BrainContext(
-                command=command,
-                evidence=evidence,
-                memory=[],
-                project=repository or None,
-            )
-            reasoning = brain.reason(ctx)
+            reasoning = brain.reason(BrainContext(
+                command=ctx.command,
+                evidence=ctx.evidence,
+                memory=ctx.memory,
+                project=ctx.project,
+            ))
             if reasoning.get("status") == "MODEL_RESPONSE":
                 safe = guard_model_output(reasoning.get("response", ""))
                 message = safe["text"]
             else:
-                message = "Command accepted. No model backend is configured; evidence collection/routing completed."
+                message = (
+                    "Command accepted. Local planning, provenance and evidence routing completed. "
+                    "No model backend is configured."
+                )
 
         self.history.append({
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -97,5 +122,10 @@ class AutonomousPhoneRuntime:
             "explicit_write_authorization": explicit_write_authorization,
             "decision": decision.value,
             "status": status,
+        })
+        self.orchestrator.ledger.append("COMMAND_RESULT", {
+            "command": command,
+            "status": status,
+            "decision": decision.value,
         })
         return f"{status}: {message}"
