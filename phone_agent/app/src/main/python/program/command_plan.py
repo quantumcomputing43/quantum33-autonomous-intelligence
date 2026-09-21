@@ -18,6 +18,8 @@ def classify_intent(command: str) -> Plan:
         tools.append("python")
     if any(x in c for x in ("simulation matrix", "simulation", "matrix", "run experiment")):
         tools.append("simulation")
+    if any(x in c for x in ("quantum simulation", "quantum simulator", "superposition", "state vector")):
+        tools.append("quantum_simulation")
     if not tools:
         tools.append("reasoning")
     write_like = any(x in c for x in ("write", "commit", "push", "delete", "merge", "create pull request"))
