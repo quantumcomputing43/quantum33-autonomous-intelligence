@@ -96,6 +96,22 @@ class AutonomousPhoneRuntime:
                         "confidence": 0.0,
                     })
 
+            if "quantum_simulation" in plan.tools:
+                try:
+                    evidence.append({
+                        "source": "local_quantum_simulator",
+                        "kind": "simulation",
+                        "content": repr(self.orchestrator.run_quantum_demo()),
+                        "confidence": 1.0,
+                    })
+                except Exception as exc:
+                    evidence.append({
+                        "source": "local_quantum_simulator",
+                        "kind": "error",
+                        "content": str(exc),
+                        "confidence": 0.0,
+                    })
+
             ctx = self.orchestrator.context(command, repository or None, evidence)
             brain = Brain(backend)
             reasoning = brain.reason(BrainContext(
