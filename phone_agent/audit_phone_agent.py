@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Static pre-build audit for the Android phone agent.
+"""Static pre-build audit for the RMX3690-targeted Android phone agent.
 
-This audit checks mechanical build contracts only. It does not alter scientific
-questions, endpoints, thresholds, hypotheses, or project data.
+Mechanical compatibility audit only: it does not alter scientific questions,
+endpoints, thresholds, hypotheses, or project data.
 """
 from pathlib import Path
 import re
@@ -28,7 +28,6 @@ def require(path, text, label):
     if text not in data:
         errors.append(f"{label}: missing required contract {text!r}")
 
-# Repository/build structure.
 require(ROOT_BUILD, "com.chaquo.python", "root Gradle")
 require(BUILD, "id 'com.chaquo.python'", "app Gradle plugin")
 require(BUILD, "chaquopy {", "Chaquopy DSL")
@@ -36,12 +35,12 @@ require(BUILD, "version = '3.11'", "Python runtime version")
 require(BUILD, "buildPython 'python3.11'", "Python build interpreter")
 require(BUILD, "jvmToolchain(17)", "Kotlin JVM target")
 require(BUILD, "JavaVersion.VERSION_17", "Java JVM target")
-require(BUILD, "abiFilters 'arm64-v8a', 'x86_64'", "ABI contract")
+require(BUILD, "abiFilters 'arm64-v8a', 'armeabi-v7a'", "RMX3690 ARM ABI contract")
+require(BUILD, "versionName '0.2.0-rmx3690'", "RMX3690 build identity")
 require(SETTINGS, "mavenCentral()", "plugin repository")
 require(MANIFEST, "android.permission.INTERNET", "network permission")
 require(WORKFLOW, "actions/setup-python@v5", "CI Python provisioning")
 
-# Chaquopy 16.x + AGP 8.7.x compatibility guard.
 root_build = ROOT_BUILD.read_text(encoding="utf-8")
 m = re.search(r"com\.android\.application['\"]\s+version\s+['\"]([0-9.]+)", root_build)
 c = re.search(r"com\.chaquo\.python['\"]\s+version\s+['\"]([0-9.]+)", root_build)
@@ -53,8 +52,6 @@ else:
     if chaq[:2] == (16, 0) and not ((8, 6) <= agp[:2] <= (8, 8)):
         errors.append(f"Chaquopy 16.0 / AGP {m.group(1)} compatibility mismatch")
 
-# Mechanical Kotlin duplicate-declaration guard: catches the exact failure
-# that would otherwise only appear late in the Gradle compilation phase.
 activity = ACTIVITY.read_text(encoding="utf-8")
 decls = re.findall(r"\b(?:val|var|private\s+lateinit\s+var)\s+(\w+)\s*(?::|=)", activity)
 seen = set()
@@ -66,12 +63,14 @@ for name in decls:
 if dupes:
     errors.append("Kotlin duplicate declarations: " + ", ".join(sorted(set(dupes))))
 
-# Python bridge must expose exactly one callable entry point.
+# On a 2 GB device, Python should start only when a command is executed.
+if "Python.start(AndroidPlatform(this))" in activity and "private fun getAgent()" not in activity:
+    errors.append("Low-memory contract: Python startup must remain deferred to getAgent()")
+
 bridge = BRIDGE.read_text(encoding="utf-8")
 if bridge.count("def handle_command(") != 1:
     errors.append("Python bridge: expected exactly one handle_command definition")
 
-# CI must run the audit before assembleDebug.
 workflow = WORKFLOW.read_text(encoding="utf-8")
 audit_pos = workflow.find("audit_phone_agent.py")
 build_pos = workflow.find("gradle assembleDebug")
@@ -87,4 +86,4 @@ if errors:
     sys.exit(1)
 
 print("PHONE_AGENT_AUDIT: PASS")
-print("Mechanical contracts checked: Gradle/Chaquopy, Python DSL/version, ABIs, manifest permission, Kotlin duplicate declarations, bridge entry point, CI audit ordering.")
+print("RMX3690 contracts checked: ARM32+ARM64 ABI coverage, Python 3.11, JVM 17, Android API range, low-memory deferred Python startup, manifest/network permission, duplicate Kotlin declarations, bridge entry point, and CI ordering.")
