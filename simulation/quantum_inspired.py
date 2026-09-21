@@ -4,8 +4,6 @@ from dataclasses import dataclass
 import math
 from typing import Iterable, Sequence
 
-import numpy as np
-
 
 @dataclass(frozen=True)
 class QuantumInspiredState:
@@ -41,20 +39,30 @@ class QuantumInspiredState:
         return tuple(float(abs(a) ** 2) for a in self.amplitudes)
 
     def apply(self, gate: Sequence[Sequence[complex]]) -> "QuantumInspiredState":
-        matrix = np.asarray(gate, dtype=np.complex128)
-        vector = np.asarray(self.amplitudes, dtype=np.complex128)
-        if matrix.shape != (self.dimension, self.dimension):
+        matrix = tuple(tuple(complex(x) for x in row) for row in gate)
+        if len(matrix) != self.dimension or any(len(row) != self.dimension for row in matrix):
             raise ValueError("Gate dimension does not match state dimension")
-        out = matrix @ vector
-        norm = float(np.linalg.norm(out))
+        out = tuple(
+            sum(matrix[i][j] * self.amplitudes[j] for j in range(self.dimension))
+            for i in range(self.dimension)
+        )
+        norm = math.sqrt(sum(abs(a) ** 2 for a in out))
         if not math.isfinite(norm) or norm <= 0:
             raise ValueError("Gate produced an invalid state")
-        out = out / norm
-        return QuantumInspiredState(tuple(complex(x) for x in out))
+        out = tuple(a / norm for a in out)
+        return QuantumInspiredState(out)
 
-    def measure(self, rng: np.random.Generator | None = None) -> int:
-        rng = rng or np.random.default_rng()
-        return int(rng.choice(self.dimension, p=np.asarray(self.probabilities())))
+    def measure(self, rng=None) -> int:
+        import random
+        rng = rng or random.Random()
+        probabilities = self.probabilities()
+        threshold = rng.random()
+        cumulative = 0.0
+        for index, probability in enumerate(probabilities):
+            cumulative += probability
+            if threshold <= cumulative:
+                return index
+        return self.dimension - 1
 
 
 def basis_zero(qubits: int = 1) -> QuantumInspiredState:
