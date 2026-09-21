@@ -43,15 +43,6 @@ class MainActivity : ComponentActivity() {
         val modelKeyInput = EditText(this).apply {
             hint = "LLM API key (optional; not persisted)"
         }
-        val modelEndpointInput = EditText(this).apply {
-            hint = "LLM endpoint (OpenAI-compatible, optional)"
-        }
-        val modelNameInput = EditText(this).apply {
-            hint = "LLM model name (optional)"
-        }
-        val modelKeyInput = EditText(this).apply {
-            hint = "LLM API key (optional; not persisted yet)"
-        }
         val status = TextView(this).apply {
             text = if (secureStore.has("github_token"))
                 "GitHub credential: configured (encrypted)"
