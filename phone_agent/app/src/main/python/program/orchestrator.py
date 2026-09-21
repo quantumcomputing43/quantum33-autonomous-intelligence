@@ -27,14 +27,15 @@ class AgentOrchestrator:
         self.ledger = ledger or EvidenceLedger()
         self.memory = memory or LocalMemory()
         self.router = router or ToolRouter()
-        self.router.register(
-            ToolSpec(
-                "quantum_simulation",
-                "Small classical quantum-inspired state-vector simulation",
-                read_only=True,
-            ),
-            run_demo,
-        )
+        if "quantum_simulation" not in self.router.enabled():
+            self.router.register(
+                ToolSpec(
+                    "quantum_simulation",
+                    "Small classical quantum-inspired state-vector simulation",
+                    run_demo,
+                    enabled=True,
+                )
+            )
 
     def plan(self, command: str) -> Plan:
         plan = classify_intent(command)
