@@ -28,6 +28,9 @@ jobs:
       - name: Pre-build phone agent audit
         working-directory: phone_agent
         run: python3 audit_phone_agent.py
+      - name: Run Python core self-test
+        working-directory: phone_agent/app/src/main/python
+        run: python3 -m program.self_test
       - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
