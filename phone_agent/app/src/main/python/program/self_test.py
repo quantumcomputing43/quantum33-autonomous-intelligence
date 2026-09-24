@@ -11,6 +11,7 @@ from program.orchestrator import AgentOrchestrator
 from program.provenance import normalize_evidence
 from program.quantum_inspired import basis_zero, hadamard
 from program.runtime import AutonomousPhoneRuntime
+from program.adversarial_self_test import run as adversarial_run
 
 
 def run() -> dict:
@@ -62,6 +63,9 @@ def run() -> dict:
     assert response.startswith("ACCEPTED:")
     checks += 1
 
+    adversarial = adversarial_run()
+    assert adversarial["status"] == "PASS"
+    checks += adversarial["checks"]
     return {"status": "PASS", "checks": checks}
 
 
