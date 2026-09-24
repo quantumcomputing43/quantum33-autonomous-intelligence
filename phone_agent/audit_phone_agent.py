@@ -47,7 +47,7 @@ if "x86_64" in build:
 
 root_build = ROOT_BUILD.read_text(encoding="utf-8")
 m = re.search(r'''com\.android\.application['"]\s+version\s+['"]([0-9.]+)''', root_build)
-c = re.search(r"com\.chaquo\.python['"]\s+version\s+['"]([0-9.]+)", root_build)
+c = re.search(r'''com\.chaquo\.python['"]\s+version\s+['"]([0-9.]+)''', root_build)
 if not m or not c:
     errors.append("version contract: could not parse AGP/Chaquopy versions")
 else:
