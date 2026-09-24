@@ -3,6 +3,8 @@
     <application
         android:theme="@style/AppTheme"
         android:label="Quantum33 Autonomous Agent"
+        android:icon="@drawable/ic_quantum33"
+        android:roundIcon="@drawable/ic_quantum33"
         android:allowBackup="false"
         android:supportsRtl="true">
         <activity
