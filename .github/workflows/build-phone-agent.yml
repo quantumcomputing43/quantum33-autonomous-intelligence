@@ -37,6 +37,19 @@ jobs:
       - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
+      - name: Verify APK installability packaging
+        working-directory: phone_agent
+        shell: bash
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -n 1)
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -n "$ZIPALIGN"
+          test -n "$APKSIGNER"
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK"
+          "$APKSIGNER" verify --verbose "$APK"
+          sha256sum "$APK"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
