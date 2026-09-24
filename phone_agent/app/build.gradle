@@ -26,6 +26,15 @@ android {
             abiFilters 'arm64-v8a', 'armeabi-v7a'
         }
     }
+
+    // RMX3690 / Android 12 compatibility: package native .so files
+    // in the legacy compressed form to avoid device-side native-library
+    // alignment/install edge cases. This is mechanical packaging only.
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
 }
 
 chaquopy {
