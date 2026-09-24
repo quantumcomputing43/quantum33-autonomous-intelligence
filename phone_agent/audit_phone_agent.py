@@ -39,6 +39,9 @@ require(BUILD, "abiFilters 'arm64-v8a', 'armeabi-v7a'", "RMX3690 ARM ABI contrac
 require(BUILD, "versionName '1.0.0-rmx3690'", "RMX3690 build identity")
 require(SETTINGS, "mavenCentral()", "plugin repository")
 require(MANIFEST, "android.permission.INTERNET", "network permission")
+require(MANIFEST, 'android:windowSoftInputMode="adjustResize"', "keyboard resize policy")
+require(ACTIVITY, "ScrollView(this)", "scrollable phone UI")
+require(ACTIVITY, 'text = "SEND COMMAND"', "visible command action")
 require(WORKFLOW, "actions/setup-python@v5", "CI Python provisioning")
 
 build = BUILD.read_text(encoding="utf-8")
