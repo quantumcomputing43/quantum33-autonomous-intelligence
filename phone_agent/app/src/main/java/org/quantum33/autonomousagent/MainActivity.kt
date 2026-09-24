@@ -3,6 +3,10 @@ package org.quantum33.autonomousagent
 import android.os.Bundle
 import android.graphics.Color
 import android.view.View
+import android.view.Gravity
+import android.view.inputmethod.InputMethodManager
+import android.content.Context
+import android.widget.ScrollView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -40,9 +44,22 @@ class MainActivity : ComponentActivity() {
             setPadding(12, 0, 12, 18)
         }
 
+        val commandLabel = TextView(this).apply {
+            text = "COMMAND TERMINAL"
+            textSize = 13f
+            setTextColor(Color.rgb(57, 255, 20))
+            setPadding(0, 20, 0, 8)
+        }
+
         val input = EditText(this).apply {
             hint = "Enter an explicit command"
             minLines = 3
+            maxLines = 5
+            setTextColor(Color.rgb(232, 255, 232))
+            setHintTextColor(Color.rgb(143, 191, 154))
+            setGravity(Gravity.TOP or Gravity.START)
+            setPadding(14, 14, 14, 14)
+            isSingleLine = false
         }
         val tokenInput = EditText(this).apply {
             hint = "GitHub token (stored encrypted on this phone)"
@@ -79,7 +96,11 @@ class MainActivity : ComponentActivity() {
         val removeToken = Button(this).apply { text = "Remove GitHub Credential" }
         val saveModel = Button(this).apply { text = "Save LLM Configuration Securely" }
         val removeModel = Button(this).apply { text = "Remove LLM Configuration" }
-        val run = Button(this).apply { text = "Send Command" }
+        val run = Button(this).apply {
+            text = "SEND COMMAND"
+            minHeight = 52
+            isAllCaps = false
+        }
 
         if (secureStore.has("model_endpoint")) {
             modelEndpointInput.setText(secureStore.get("model_endpoint") ?: "")
@@ -132,6 +153,8 @@ class MainActivity : ComponentActivity() {
 
         run.setOnClickListener {
             val command = input.text.toString().trim()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(input.windowToken, 0)
             if (command.isBlank()) {
                 output.text = "No command entered."
                 return@setOnClickListener
@@ -165,10 +188,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        setContentView(LinearLayout(this).apply {
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.BLACK)
-            setPadding(16, 12, 16, 16)
+            setPadding(16, 8, 16, 24)
             addView(header)
             addView(subtitle)
             addView(repoInput)
@@ -182,9 +205,36 @@ class MainActivity : ComponentActivity() {
             addView(removeModel)
             status.setTextColor(Color.rgb(57, 255, 20))
             addView(status)
-            addView(input)
-            addView(run)
-            addView(output)
-        })
+            addView(commandLabel)
+            addView(input, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
+            addView(run, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                56
+            ))
+            addView(output, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 12 })
+        }
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            isVerticalScrollBarEnabled = true
+            setBackgroundColor(Color.BLACK)
+            addView(content)
+        }
+
+        setContentView(scroll)
+
+        input.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                scroll.postDelayed({
+                    scroll.smoothScrollTo(0, content.bottom)
+                }, 150)
+            }
+        }
     }
 }
