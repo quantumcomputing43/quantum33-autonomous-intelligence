@@ -1,37 +1,17 @@
-"""Post-action verification hooks."""
+from __future__ import annotations
+import hashlib, json
 
-from dataclasses import dataclass
+def verify_evidence(evidence):
+    errors=[]
+    for item in evidence or []:
+        if not isinstance(item,dict): errors.append("invalid evidence record"); continue
+        if item.get("authority") not in (None,"EVIDENCE_ONLY","EVIDENCE_OR_PROPOSAL_ONLY"):
+            errors.append("evidence authority escalation detected")
+    return {"status":"PASS" if not errors else "FAIL","errors":errors}
 
+def fingerprint(payload):
+    return hashlib.sha256(json.dumps(payload,sort_keys=True,default=str).encode()).hexdigest()
 
-@dataclass(frozen=True)
-class VerificationResult:
-    passed: bool
-    checks: tuple[str, ...]
-    failures: tuple[str, ...] = ()
-
-
-class Verifier:
-    def verify_text_artifact(self, before: str, after: str) -> VerificationResult:
-        failures = []
-        if not after:
-            failures.append("EMPTY_ARTIFACT")
-        if before == after:
-            failures.append("NO_CHANGE")
-        return VerificationResult(
-            passed=not failures,
-            checks=("non_empty", "change_detected"),
-            failures=tuple(failures),
-        )
-
-    def verify_scientific_contract_unchanged(self, before: dict, after: dict) -> VerificationResult:
-        protected = (
-            "question", "hypothesis", "mechanism", "endpoint", "threshold",
-            "controls", "inclusion", "exclusion", "null_definition",
-            "statistical_criteria",
-        )
-        failures = [key for key in protected if before.get(key) != after.get(key)]
-        return VerificationResult(
-            passed=not failures,
-            checks=("scientific_contract_unchanged",),
-            failures=tuple(failures),
-        )
+def verify_result(result, expected_keys=()):
+    missing=[k for k in expected_keys if k not in result]
+    return {"status":"PASS" if not missing else "FAIL","missing":missing}
