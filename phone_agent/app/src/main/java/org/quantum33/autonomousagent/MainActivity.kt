@@ -1,6 +1,8 @@
 package org.quantum33.autonomousagent
 
 import android.os.Bundle
+import android.graphics.Color
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -23,6 +25,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         secureStore = SecureStore(this)
+
+        val header = TextView(this).apply {
+            text = "QUANTUM33\nQUANTUM COMPUTER SIMULATION MATRIX"
+            textSize = 22f
+            setTextColor(Color.rgb(57, 255, 20))
+            setPadding(12, 18, 12, 18)
+        }
+
+        val subtitle = TextView(this).apply {
+            text = "AUTONOMOUS AGENT  •  THINK  •  SIMULATE  •  VERIFY"
+            textSize = 11f
+            setTextColor(Color.rgb(0, 255, 136))
+            setPadding(12, 0, 12, 18)
+        }
 
         val input = EditText(this).apply {
             hint = "Enter an explicit command"
@@ -53,8 +69,10 @@ class MainActivity : ComponentActivity() {
             setPadding(0, 16, 0, 16)
         }
         val output = TextView(this).apply {
-            text = "Quantum33 Autonomous Agent\nReady — no command has been executed."
-            setPadding(24, 24, 24, 24)
+            text = "SYSTEM // READY\nNo command has been executed."
+            setTextColor(Color.rgb(232, 255, 232))
+            setBackgroundResource(org.quantum33.autonomousagent.R.drawable.cyber_panel)
+            setPadding(18, 18, 18, 18)
         }
 
         val saveToken = Button(this).apply { text = "Save GitHub Credential Securely" }
@@ -149,7 +167,10 @@ class MainActivity : ComponentActivity() {
 
         setContentView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 24, 24, 24)
+            setBackgroundColor(Color.BLACK)
+            setPadding(16, 12, 16, 16)
+            addView(header)
+            addView(subtitle)
             addView(repoInput)
             addView(modelEndpointInput)
             addView(modelNameInput)
@@ -159,6 +180,7 @@ class MainActivity : ComponentActivity() {
             addView(removeToken)
             addView(saveModel)
             addView(removeModel)
+            status.setTextColor(Color.rgb(57, 255, 20))
             addView(status)
             addView(input)
             addView(run)
