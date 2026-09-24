@@ -8,6 +8,9 @@ from program.memory import LocalMemory
 from program.provenance import normalize_evidence
 from program.tool_router import ToolRouter, ToolSpec
 from program.quantum_tool import run_demo
+from program.scheduler import Scheduler
+from program.checkpoint import CheckpointStore
+from program.verification import verify_evidence, verify_result
 
 
 @dataclass
@@ -27,6 +30,8 @@ class AgentOrchestrator:
         self.ledger = ledger or EvidenceLedger()
         self.memory = memory or LocalMemory()
         self.router = router or ToolRouter()
+        self.scheduler = Scheduler(max_seconds=30.0)
+        self.checkpoints = CheckpointStore()
         if "quantum_simulation" not in self.router.enabled():
             self.router.register(
                 ToolSpec(
@@ -50,6 +55,8 @@ class AgentOrchestrator:
                 evidence: list[dict]) -> AgentContext:
         normalized = normalize_evidence(evidence)
         memory = self.memory.recent(project=project)
+        verification = verify_evidence(evidence)
+        self.ledger.append("EVIDENCE_VERIFICATION", verification)
         return AgentContext(
             command=command,
             project=project,
@@ -59,7 +66,9 @@ class AgentOrchestrator:
 
     def run_quantum_demo(self, qubits: int = 1) -> dict:
         result = self.router.run("quantum_simulation", qubits=qubits)
-        self.ledger.append("QUANTUM_SIMULATION", result)
+        checked = verify_result(result, ("status", "probabilities"))
+        self.ledger.append("QUANTUM_SIMULATION", {"result": result, "verification": checked})
+        if checked["status"] != "PASS": raise RuntimeError("quantum result verification failed")
         return result
 
     def record_command(self, command: str, project: str | None = None) -> None:
