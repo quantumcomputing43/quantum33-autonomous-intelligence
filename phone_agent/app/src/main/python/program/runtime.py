@@ -8,6 +8,7 @@ from program.brain import Brain, BrainContext
 from program.model_provider import OpenAICompatibleBackend
 from program.scientific_guard import guard_model_output
 from program.orchestrator import AgentOrchestrator
+from program.verification import verify_evidence
 
 
 @dataclass
@@ -113,6 +114,10 @@ class AutonomousPhoneRuntime:
                     })
 
             ctx = self.orchestrator.context(command, repository or None, evidence)
+            checkpoint = self.orchestrator.checkpoints.save("command", "EVIDENCE_COLLECTED", {"command": command, "evidence_count": len(evidence)})
+            gate = verify_evidence(ctx.evidence)
+            if gate["status"] != "PASS":
+                return "BLOCKED: evidence verification failed."
             brain = Brain(backend)
             reasoning = brain.reason(BrainContext(
                 command=ctx.command,
