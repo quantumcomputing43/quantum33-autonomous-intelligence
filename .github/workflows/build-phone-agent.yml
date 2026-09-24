@@ -31,6 +31,9 @@ jobs:
       - name: Run Python core self-test
         working-directory: phone_agent/app/src/main/python
         run: python3 -m program.self_test
+      - name: Run adversarial core self-test
+        working-directory: phone_agent/app/src/main/python
+        run: python3 -m program.adversarial_self_test
       - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
