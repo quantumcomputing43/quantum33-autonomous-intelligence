@@ -4,12 +4,14 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from program.storage import app_data_dir
+
 
 class EvidenceLedger:
     """Append-only local evidence/event ledger."""
 
     def __init__(self, root: Path | None = None):
-        self.root = root or (Path.cwd() / ".quantum33")
+        self.root = Path(root) if root is not None else app_data_dir()
         self.path = self.root / "evidence_ledger.jsonl"
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
