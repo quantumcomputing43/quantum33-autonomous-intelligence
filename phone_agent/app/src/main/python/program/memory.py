@@ -6,6 +6,8 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from program.storage import app_data_dir
+
 
 @dataclass
 class MemoryRecord:
@@ -22,7 +24,7 @@ class LocalMemory:
     """Small bounded persistent memory; memory is evidence, never authority."""
 
     def __init__(self, root: Path | None = None, max_records: int = 256):
-        self.root = root or (Path.cwd() / ".quantum33")
+        self.root = Path(root) if root is not None else app_data_dir()
         self.path = self.root / "memory.jsonl"
         self.max_records = max(1, int(max_records))
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -73,5 +75,4 @@ class LocalMemory:
                 f.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
 
 
-# Backward-compatible name for older callers.
 MemoryStore = LocalMemory
