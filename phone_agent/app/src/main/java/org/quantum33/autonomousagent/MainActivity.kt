@@ -2,7 +2,6 @@ package org.quantum33.autonomousagent
 
 import android.os.Bundle
 import android.graphics.Color
-import android.view.View
 import android.view.Gravity
 import android.view.inputmethod.InputMethodManager
 import android.content.Context
@@ -165,16 +164,21 @@ class MainActivity : ComponentActivity() {
                 command.lowercase().contains("pull request")
 
             val execute = {
-                output.text = getAgent().callAttr(
-                    "handle_command",
-                    command,
-                    repoInput.text.toString(),
-                    secureStore.get("github_token") ?: "",
-                    explicitWrite,
-                    secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
-                    secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
-                    secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
-                ).toString()
+                try {
+                    output.text = getAgent().callAttr(
+                        "handle_command",
+                        command,
+                        repoInput.text.toString(),
+                        secureStore.get("github_token") ?: "",
+                        explicitWrite,
+                        secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
+                        secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
+                        secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
+                    ).toString()
+                } catch (t: Throwable) {
+                    output.text = "COMMAND ERROR — application kept running.\n" +
+                        (t.message ?: t.javaClass.simpleName)
+                }
             }
 
             if (explicitWrite) {
