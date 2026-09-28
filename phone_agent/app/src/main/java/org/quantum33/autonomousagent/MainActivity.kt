@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.chaquo.python.Python
@@ -27,31 +28,31 @@ class MainActivity : ComponentActivity() {
             minLines = 3
         }
         val tokenInput = EditText(this).apply {
-            hint = "GitHub token (stored encrypted on this phone)"
+            hint = "GitHub token (optional; stored encrypted on this phone)"
             minLines = 1
         }
         val repoInput = EditText(this).apply {
-            hint = "Repository owner/name"
-            setText("quantumcomputing43/quantum33-autonomous-intelligence")
+            hint = "Repository owner/name (optional)"
+            setText("quantumcomputing43/quantum33-simulation-matrix")
         }
         val modelEndpointInput = EditText(this).apply {
-            hint = "LLM endpoint (OpenAI-compatible, optional)"
+            hint = "LLM endpoint (optional)"
         }
         val modelNameInput = EditText(this).apply {
             hint = "LLM model name (optional)"
         }
         val modelKeyInput = EditText(this).apply {
-            hint = "LLM API key (optional; not persisted)"
+            hint = "LLM API key (optional; encrypted if saved)"
         }
         val status = TextView(this).apply {
             text = if (secureStore.has("github_token"))
                 "GitHub credential: configured (encrypted)"
             else
-                "GitHub credential: not configured"
+                "Privacy mode: local/no credential configured"
             setPadding(0, 16, 0, 16)
         }
         val output = TextView(this).apply {
-            text = "Quantum33 Autonomous Agent\nReady — no command has been executed."
+            text = "Anonymous Simulation Matrix\nReady — no command has been executed."
             setPadding(24, 24, 24, 24)
         }
 
@@ -59,7 +60,7 @@ class MainActivity : ComponentActivity() {
         val removeToken = Button(this).apply { text = "Remove GitHub Credential" }
         val saveModel = Button(this).apply { text = "Save LLM Configuration Securely" }
         val removeModel = Button(this).apply { text = "Remove LLM Configuration" }
-        val run = Button(this).apply { text = "Send Command" }
+        val run = Button(this).apply { text = "SEND COMMAND" }
 
         if (secureStore.has("model_endpoint")) {
             modelEndpointInput.setText(secureStore.get("model_endpoint") ?: "")
@@ -81,7 +82,7 @@ class MainActivity : ComponentActivity() {
         removeToken.setOnClickListener {
             secureStore.remove("github_token")
             tokenInput.text.clear()
-            status.text = "GitHub credential: not configured"
+            status.text = "Privacy mode: local/no credential configured"
             output.text = "GitHub credential removed."
         }
 
@@ -150,7 +151,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        setContentView(LinearLayout(this).apply {
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
             addView(repoInput)
@@ -166,6 +167,10 @@ class MainActivity : ComponentActivity() {
             addView(input)
             addView(run)
             addView(output)
+        }
+
+        setContentView(ScrollView(this).apply {
+            addView(content)
         })
     }
 }
