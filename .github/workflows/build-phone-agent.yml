@@ -31,8 +31,18 @@ jobs:
       - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
+      - name: Verify APK packaging and digest
+        shell: bash
+        run: |
+          APK="phone_agent/app/build/outputs/apk/debug/app-debug.apk"
+          SDK_ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -name zipalign | sort -V | tail -1)"
+          test -n "$SDK_ZIPALIGN"
+          "$SDK_ZIPALIGN" -P 16 -v -c 4 "$APK"
+          sha256sum "$APK" | tee phone_agent/app-debug.apk.sha256
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: quantum33-autonomous-agent-debug-apk
-          path: phone_agent/app/build/outputs/apk/debug/app-debug.apk
+          name: anonymous-simulation-matrix-debug-apk
+          path: |
+            phone_agent/app/build/outputs/apk/debug/app-debug.apk
+            phone_agent/app-debug.apk.sha256
