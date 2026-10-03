@@ -38,9 +38,14 @@ for path, text, label in [
     (MANIFEST, 'android:windowSoftInputMode="adjustResize"', "keyboard resize contract"),
     (ACTIVITY, "ScrollView", "scrollable command UI"),
     (ACTIVITY, "SEND COMMAND", "command action UI"),
+    (BRIDGE, "def handle_command(", "Python command bridge"),
+    (APP / "src/main/python/program/runtime.py", "MAX_STEPS = 6", "bounded autonomous loop"),
+    (APP / "src/main/python/program/tool_executor.py", "class ToolExecutor", "allow-listed tool executor"),
+    (APP / "src/main/python/program/memory.py", "class MemoryStore", "persistent local memory"),
     (WORKFLOW, "actions/setup-python@v5", "CI Python provisioning"),
     (WORKFLOW, "zipalign", "APK alignment verification"),
     (WORKFLOW, "sha256sum", "APK digest verification"),
+    (WORKFLOW, "pytest -q tests", "runtime safety tests"),
 ]:
     require(path, text, label)
 
