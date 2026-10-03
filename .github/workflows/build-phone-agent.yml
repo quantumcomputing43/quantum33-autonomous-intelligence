@@ -30,7 +30,8 @@ jobs:
         run: python3 audit_phone_agent.py
       - name: Test autonomous runtime safety
         working-directory: phone_agent
-        run: PYTHONPATH=app/src/main/python python3 -m pytest -q tests\n      - name: Build debug APK
+        run: PYTHONPATH=app/src/main/python python3 -m pytest -q tests
+      - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
       - name: Verify APK packaging and digest
