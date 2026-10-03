@@ -48,7 +48,7 @@ class AutonomousPhoneRuntime:
             except Exception as exc: evidence.append({"source":"github","kind":"error","content":str(exc)})
 
         bridge=SimulationMatrixBridge(gh)
-        executor=ToolExecutor(gh,bridge,self.memory)
+        executor=ToolExecutor(gh,bridge,self.memory,write_authorized=explicit_write_authorization)
         memory=self.memory.search(command,repository)[:20]
         observations=[]
         final=None
@@ -77,8 +77,9 @@ class AutonomousPhoneRuntime:
                 tool=action.get("tool","")
                 if tool.startswith("github.") and tool not in {
                     "github.repository","github.file","github.tree",
-                    "github.commits","github.workflow_runs"}:
-                    final="BLOCKED: write-capable tool is not enabled in this runtime."
+                    "github.commits","github.workflow_runs",
+                    "github.create_file","github.update_file"}:
+                    final="BLOCKED: GitHub tool is not allow-listed in this runtime."
                     break
                 try:
                     result=executor.execute(action)
