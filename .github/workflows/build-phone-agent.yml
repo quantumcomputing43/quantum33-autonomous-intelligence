@@ -28,6 +28,8 @@ jobs:
       - name: Pre-build phone agent audit
         working-directory: phone_agent
         run: python3 audit_phone_agent.py
+      - name: Install Python test dependency
+        run: python3 -m pip install --disable-pip-version-check pytest
       - name: Test autonomous runtime safety
         working-directory: phone_agent
         run: PYTHONPATH=app/src/main/python python3 -m pytest -q tests
