@@ -28,7 +28,7 @@ jobs:
       - name: Pre-build phone agent audit
         working-directory: phone_agent
         run: python3 audit_phone_agent.py
-      - name: Build debug APK
+      - name: Test autonomous runtime safety\n        working-directory: phone_agent\n        run: PYTHONPATH=app/src/main/python python3 -m pytest -q tests\n      - name: Build debug APK
         working-directory: phone_agent
         run: gradle assembleDebug
       - name: Verify APK packaging and digest
