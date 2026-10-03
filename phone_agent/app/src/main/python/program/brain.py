@@ -22,7 +22,7 @@ Your output MUST be strict JSON with either:
 {"actions":[{"tool":"ALLOWLISTED_TOOL","args":{...}}],"final":""}
 or {"actions":[],"final":"..."}.
 Allowed tools: github.repository, github.file, github.tree, github.commits,
-github.workflow_runs, simulation.request, memory.search.
+github.workflow_runs, github.create_file, github.update_file, simulation.request, memory.search.
 Use at most 8 actions per step. After observations, decide whether another tool
 call is needed or return final. Scientific decisions cannot be changed by the model.
 If required provenance or contract information is missing, return INCONCLUSIVE/BLOCKED,
