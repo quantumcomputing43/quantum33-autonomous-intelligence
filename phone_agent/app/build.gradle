@@ -23,8 +23,8 @@ android {
         applicationId 'org.quantum33.autonomousagent'
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName '1.1.0-rmx3690'
+        versionCode 6
+        versionName '1.2.0-rmx3690'
 
         compileOptions {
             sourceCompatibility JavaVersion.VERSION_17
