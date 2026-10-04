@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
             }
             val explicitWrite = text.lowercase().let {
                 it.contains("write") || it.contains("commit") || it.contains("push") ||
-                it.contains("create file") || it.contains("update file") || it.contains("pull request")
+                it.contains("create file") || it.contains("update file") || it.contains("pull request") ||\n                it.contains("fix") || it.contains("repair") || it.contains("modify") ||\n                it.contains("develop") || it.contains("implement") || it.contains("run simulation") ||\n                it.contains("simulation matrix") || it.contains("dispatch workflow")
             }
             val execute = {
                 output.text = agent.callAttr(
