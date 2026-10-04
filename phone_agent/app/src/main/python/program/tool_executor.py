@@ -13,6 +13,8 @@ class ToolExecutor:
         if tool=="github.tree": return self.github.tree(args["repository"],args.get("ref","HEAD"))
         if tool=="github.commits": return self.github.commits(args["repository"],int(args.get("per_page",20)))
         if tool=="github.workflow_runs": return self.github.workflow_runs(args["repository"],int(args.get("per_page",20)))
+        if tool=="github.workflow_jobs": return self.github.workflow_jobs(args["repository"],int(args["run_id"]))
+        if tool=="github.workflow_artifacts": return self.github.workflow_artifacts(args["repository"],int(args["run_id"]))
         if tool=="github.create_file":
             self._write(); return self.github.create_file(args["repository"],args["path"],args["content"],args["message"],args.get("branch","main"))
         if tool=="github.update_file":
