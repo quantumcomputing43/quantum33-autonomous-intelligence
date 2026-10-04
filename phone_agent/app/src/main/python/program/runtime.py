@@ -10,14 +10,19 @@ from program.scientific_guard import guard_model_output
 from program.memory import MemoryStore
 from program.tool_executor import ToolExecutor
 from program.simulation_bridge import SimulationMatrixBridge
+from program.world import EngineeringSupervisor
+from program.preflight import PredictivePreflight
 
-MAX_STEPS = 6
+# Safety brake only. It is not a definition of intelligence or completion.
+MAX_CYCLES = 24
 
 class AutonomousPhoneRuntime:
     """Bounded reason-act-observe-verify loop with explicit human authority."""
     def __init__(self):
         self.history=[]
         self.memory=MemoryStore(Path.home()/".quantum33_agent")
+        self.supervisor=EngineeringSupervisor(MAX_CYCLES)
+        self.preflight=PredictivePreflight()
 
     def validate_configuration(self, source_repo, simulation_repo, simulation_workflow,
                                github_token, model_endpoint, model_name, model_api_key):
@@ -65,88 +70,141 @@ class AutonomousPhoneRuntime:
                              model_endpoint="", model_name="", model_api_key="",
                              simulation_repository=""):
         command=command.strip()
-        if not command: return "BLOCKED: empty command."
+        if not command:
+            return "BLOCKED: empty command."
         envelope=CommandEnvelope(command,Authority.HUMAN,explicit_write_authorization)
         decision=decide(envelope)
         if decision is Decision.BLOCK:
             return self._record(command,repository,decision.value,"BLOCKED: protected scientific contract.")
         if decision is Decision.REQUIRE_HUMAN_AUTHORIZATION:
-            return self._record(command,repository,decision.value,"BLOCKED: explicit one-time write authorization required.")
-
+            return self._record(command,repository,decision.value,
+                                "BLOCKED: explicit one-time write authorization required.")
         if not (model_endpoint and model_name and model_api_key):
-            return self._record(command,repository,decision.value,"BLOCKED: autonomous model backend is not configured.")
+            return self._record(command,repository,decision.value,
+                                "BLOCKED: autonomous model backend is not configured.")
 
+        state=self.supervisor.start(command, repository or None)
         evidence=[]
-        gh=None
+        observations=[]
         try:
             if not github_token:
                 raise ValueError("GitHub credential is required for repository-aware agent operation")
             gh=GitHubService(github_token)
         except Exception as exc:
-            return self._record(command,repository,decision.value,"BLOCKED: GitHub configuration unavailable: "+str(exc))
+            state.set_terminal("BLOCKED")
+            return self._record(command,repository,decision.value,
+                                "BLOCKED: GitHub configuration unavailable: "+str(exc))
 
         try:
             if repository:
-                evidence.append({"source":"github","kind":"repository","content":repr(gh.repository(repository))})
+                evidence.append({"source":"github","kind":"repository",
+                                 "content":repr(gh.repository(repository))})
             if simulation_repository:
-                evidence.append({"source":"simulation","kind":"repository","content":simulation_repository})
+                evidence.append({"source":"simulation","kind":"repository",
+                                 "content":simulation_repository})
+            tree=gh.tree(repository,"HEAD") if repository else {}
+            runs=gh.workflow_runs(repository,10) if repository else {}
+            report=self.preflight.run(repository or "local", tree, runs)
+            evidence.append({"source":"simulation_matrix","kind":"preflight",
+                             "content":repr(report.as_dict())})
+            state.scenarios.extend(report.scenarios)
+            state.phase="SELECT_STRATEGY" if report.status=="PREFLIGHT_CAUTION" else "EXECUTE"
         except Exception as exc:
-            evidence.append({"source":"github","kind":"error","content":str(exc)})
+            state.set_terminal("BLOCKED")
+            return self._record(command,repository,decision.value,
+                                "BLOCKED: predictive preflight failed: "+str(exc))
 
         try:
             backend=OpenAICompatibleBackend(model_endpoint,model_name,model_api_key)
         except Exception as exc:
-            return self._record(command,repository,decision.value,"BLOCKED: model configuration error: "+str(exc))
+            state.set_terminal("BLOCKED")
+            return self._record(command,repository,decision.value,
+                                "BLOCKED: model configuration error: "+str(exc))
 
         bridge=SimulationMatrixBridge(gh)
-        executor=ToolExecutor(gh,bridge,self.memory,write_authorized=explicit_write_authorization)
+        executor=ToolExecutor(gh,bridge,self.memory,
+                              write_authorized=explicit_write_authorization)
         memory=self.memory.search(command,repository)[:20]
-        observations=[]
         final=None
+        verified=False
 
-        for step in range(1,MAX_STEPS+1):
-            ctx=BrainContext(command,evidence,memory,repository or None,step,observations)
+        while not state.terminal():
+            self.supervisor.advance(state)
+            if state.terminal():
+                break
+            state.phase="REASON"
+            ctx=BrainContext(command,evidence,memory,repository or None,
+                             state.cycle,observations)
             reasoning=Brain(backend).reason(ctx)
             if reasoning.get("status")!="MODEL_RESPONSE":
+                state.set_terminal("BLOCKED")
                 final="BLOCKED: model reasoning unavailable."
                 break
             try:
-                plan=json.loads(reasoning["response"])
-                actions=plan.get("actions",[])
-                if not isinstance(actions,list) or len(actions)>8: raise ValueError("invalid action plan")
-                if plan.get("final"):
-                    final=str(plan["final"]); break
-            except Exception as exc:
-                final="INCONCLUSIVE: invalid model action plan: "+str(exc)
-                break
-
-            if not actions:
-                final="INCONCLUSIVE: agent returned no action and no final result."
-                break
-
-            for action in actions:
-                tool=action.get("tool","")
-                allowed={"github.repository","github.file","github.tree","github.commits",
-                         "github.workflow_runs","github.workflow_jobs","github.workflow_artifacts","github.create_file","github.update_file",
-                         "github.workflow_dispatch","simulation.request","memory.search"}
-                if tool not in allowed:
-                    final="BLOCKED: tool is not allow-listed in this runtime."
+                raw=json.loads(reasoning["response"])
+                plan=ToolExecutor.parse_actions(reasoning["response"])
+                if raw.get("final"):
+                    candidate=str(raw["final"])
+                    if self._is_verified_success(candidate, observations):
+                        state.set_terminal("SUCCESS")
+                        verified=True
+                        final=candidate
+                    else:
+                        state.phase="VERIFY"
+                        observations.append({"cycle":state.cycle,
+                                             "kind":"verification_gate",
+                                             "status":"REJECTED",
+                                             "reason":"model final claim lacks observed verification evidence"})
+                    if state.terminal():
+                        break
+                if not plan:
+                    state.set_terminal("NO_VALID_PATH")
+                    final="NO_VALID_PATH: no executable action plan and no verified final result."
                     break
+            except Exception as exc:
+                state.set_terminal("VERIFICATION_FAILED")
+                final="VERIFICATION_FAILED: invalid model action plan: "+str(exc)
+                break
+
+            state.phase="EXECUTE"
+            for action in plan:
+                tool=action.get("tool","")
                 try:
                     result=executor.execute(action)
-                    obs={"step":step,"tool":tool,"status":"OK","result":repr(result)[:12000]}
+                    obs={"cycle":state.cycle,"tool":tool,"status":"OK",
+                         "result":repr(result)[:12000]}
+                except PermissionError as exc:
+                    obs={"cycle":state.cycle,"tool":tool,"status":"BLOCKED",
+                         "error":str(exc)}
                 except Exception as exc:
-                    obs={"step":step,"tool":tool,"status":"ERROR","error":str(exc)}
+                    obs={"cycle":state.cycle,"tool":tool,"status":"ERROR",
+                         "error":str(exc)}
+                    state.failures.append(obs)
                 observations.append(obs)
-                self.memory.add(f"{datetime.now(timezone.utc).timestamp()}-{step}",
+                self.memory.add(f"{datetime.now(timezone.utc).timestamp()}-{state.cycle}",
                                 "tool_observation",json.dumps(obs,ensure_ascii=False),
                                 tool,repository or None,"OBSERVED")
-            if final: break
+
+            state.phase="VERIFY"
+            if any(o.get("status")=="ERROR" for o in observations[-len(plan):]):
+                state.phase="ROOT_CAUSE"
+                state.repairs.append({"cycle":state.cycle,
+                                      "required":"identify root cause before repeating failed strategy"})
+            memory=self.memory.search(command,repository)[:20]
 
         if final is None:
-            final="INCONCLUSIVE: maximum autonomous steps reached without verified completion."
+            final=f"{state.status}: execution reached terminal state without an unverified success claim."
+        if verified:
+            final="SUCCESS: "+final
         safe=guard_model_output(final)
-        return self._record(command,repository,decision.value,safe["text"],steps=len(observations))
+        return self._record(command,repository,decision.value,safe["text"],steps=state.cycle)
+
+    @staticmethod
+    def _is_verified_success(candidate, observations):
+        text=candidate.lower()
+        if "success" not in text and "completed" not in text and "done" not in text:
+            return False
+        return any(o.get("status")=="OK" for o in observations)
 
     def _record(self,command,repository,decision,message,steps=0):
         row={"timestamp":datetime.now(timezone.utc).isoformat(),"command":command,
