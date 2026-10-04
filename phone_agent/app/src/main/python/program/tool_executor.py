@@ -36,8 +36,33 @@ class ToolExecutor:
 
     @staticmethod
     def parse_actions(text):
-        data=json.loads(text); actions=data.get("actions")
-        if not isinstance(actions,list) or len(actions)>8: raise ValueError("Invalid action plan")
+        data=ToolExecutor.parse_json_object(text)
+        actions=data.get("actions")
+        if not isinstance(actions,list) or len(actions)>8:
+            raise ValueError("Invalid action plan")
         for a in actions:
-            if not isinstance(a,dict) or not isinstance(a.get("tool"),str): raise ValueError("Invalid action")
+            if not isinstance(a,dict) or not isinstance(a.get("tool"),str):
+                raise ValueError("Invalid action")
+            if "args" in a and not isinstance(a.get("args"),dict):
+                raise ValueError("Invalid action args")
         return actions
+
+    @staticmethod
+    def parse_json_object(text):
+        if not isinstance(text,str) or not text.strip():
+            raise ValueError("Empty model response")
+        candidate=text.strip()
+        if candidate.startswith("```"):
+            parts=candidate.splitlines()
+            if parts and parts[0].strip().startswith("```"): parts=parts[1:]
+            if parts and parts[-1].strip()=="```": parts=parts[:-1]
+            candidate="\n".join(parts).strip()
+        try:
+            data=json.loads(candidate)
+        except json.JSONDecodeError:
+            start=candidate.find("{"); end=candidate.rfind("}")
+            if start < 0 or end <= start: raise ValueError("Model did not return a JSON object")
+            try: data=json.loads(candidate[start:end+1])
+            except json.JSONDecodeError as exc: raise ValueError("Invalid model JSON: "+str(exc)) from exc
+        if not isinstance(data,dict): raise ValueError("Model JSON root must be an object")
+        return data
