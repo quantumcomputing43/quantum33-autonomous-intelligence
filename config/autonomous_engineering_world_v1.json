@@ -1,0 +1,40 @@
+{
+  "schema_version": "AEW-1",
+  "name": "Autonomous Engineering World",
+  "mode": "predictive-autonomous-development",
+  "layers": [
+    "human",
+    "world_supervisor",
+    "simulation_matrix",
+    "specialist_agents",
+    "codex_executor",
+    "github_workspace",
+    "verification",
+    "memory_evidence"
+  ],
+  "terminal_states": [
+    "SUCCESS",
+    "BLOCKED",
+    "NO_VALID_PATH",
+    "NEEDS_HUMAN_DECISION",
+    "UNSAFE_OPERATION",
+    "VERIFICATION_FAILED"
+  ],
+  "pre_execution_required": [
+    "discover",
+    "self_question",
+    "preflight",
+    "simulate",
+    "select_strategy"
+  ],
+  "repair_required": [
+    "root_cause",
+    "predictability_review",
+    "architectural_fix",
+    "retest",
+    "reverify"
+  ],
+  "scientific_contract_protection": true,
+  "quantum_inspired_state_exploration": true,
+  "quantum_computation_claim": false
+}
