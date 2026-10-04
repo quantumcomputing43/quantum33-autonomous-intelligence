@@ -1,7 +1,7 @@
 import json
 
 class ToolExecutor:
-    """Allow-listed tool execution. Write tools require explicit human authorization."""
+    """Allow-listed execution. Repository writes and workflow dispatches require explicit human authorization."""
     def __init__(self, github_service=None, simulation_bridge=None, memory_store=None, write_authorized=False):
         self.github=github_service; self.simulation=simulation_bridge
         self.memory=memory_store; self.write_authorized=bool(write_authorized)
@@ -20,6 +20,7 @@ class ToolExecutor:
         if tool=="github.workflow_dispatch":
             self._write(); return self.github.workflow_dispatch(args["repository"],args["workflow"],args.get("ref","main"),args.get("inputs"))
         if tool=="simulation.request":
+            self._write()
             return self.simulation.build_and_dispatch(
                 args["project_id"],args["contract_path"],int(args["level"]),args.get("command",""),
                 args["workflow"],args["repository"],args.get("ref","main"))
@@ -28,7 +29,8 @@ class ToolExecutor:
         raise ValueError("Tool not allow-listed: "+str(tool))
 
     def _write(self):
-        if not self.write_authorized: raise PermissionError("Explicit human write authorization required")
+        if not self.write_authorized:
+            raise PermissionError("Explicit human write authorization required")
 
     @staticmethod
     def parse_actions(text):
