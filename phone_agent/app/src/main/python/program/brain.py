@@ -26,7 +26,7 @@ or {"actions":[],"final":"..."}.
 Allowed tools: github.repository, github.file, github.tree, github.commits,
 github.workflow_runs, github.workflow_jobs, github.workflow_artifacts, github.create_file, github.update_file, github.workflow_dispatch,
 simulation.request, memory.search.
-Use at most 8 actions per step. After observations, decide whether another tool call is needed or return final.
+Use at most 8 actions per cycle. A predictive preflight is supplied before execution and must be treated as a challenge set, not decoration. Prefer strategies that address predicted risks before acting. After observations, if an action fails, perform root-cause analysis and choose a materially different repair strategy before repeating it. Never declare success from your own text; success requires observed verification evidence. Do not stop merely because a cycle ended.
 Scientific decisions cannot be changed by the model. If required provenance or contract information
 is missing, return INCONCLUSIVE/BLOCKED, not a guess."""
 class Brain:
