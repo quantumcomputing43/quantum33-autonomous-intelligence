@@ -35,7 +35,7 @@ class GitHubService:
         return self.api.request("POST",path,body)
     def create_file(self, full_name, path, content, message, branch="main"):
         owner,repo=self._ctx(full_name)
-        return self.api.request("PUT",f"/repos/{owner}/contents/{path}",
+        return self.api.request("PUT",f"/repos/{owner}/{repo}/contents/{path}",
             {"message":message,"content":__import__("base64").b64encode(content.encode()).decode(),"branch":branch})
     def update_file(self, full_name, path, content, message, sha, branch="main"):
         owner,repo=self._ctx(full_name)
