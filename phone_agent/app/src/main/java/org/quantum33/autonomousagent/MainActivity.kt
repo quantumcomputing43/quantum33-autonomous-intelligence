@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
         val saveModel = Button(this).apply { text = "Save LLM Configuration Securely" }
         val removeModel = Button(this).apply { text = "Remove LLM Configuration" }
         val run = Button(this).apply { text = "SEND COMMAND" }
+        val checkUpdates = Button(this).apply { text = "CHECK FOR UPDATES" }
 
         if (secureStore.has("model_endpoint")) {
             modelEndpointInput.setText(secureStore.get("model_endpoint") ?: "")
@@ -151,6 +152,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        checkUpdates.setOnClickListener {
+            AppUpdater.checkAndOffer(this) { message -> output.text = message }
+        }
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
@@ -166,11 +171,14 @@ class MainActivity : ComponentActivity() {
             addView(status)
             addView(input)
             addView(run)
+            addView(checkUpdates)
             addView(output)
         }
 
         setContentView(ScrollView(this).apply {
             addView(content)
         })
+
+        AppUpdater.checkAndOffer(this) { message -> output.text = message }
     }
 }
