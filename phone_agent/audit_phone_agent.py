@@ -58,8 +58,8 @@ for item in contracts:
     require(*item)
 
 root_build = ROOT_BUILD.read_text(encoding="utf-8")
-m = re.search(r"com\\.android\\.application' version '([0-9.]+)", root_build)
-c = re.search(r"com\\.chaquo\\.python' version '([0-9.]+)", root_build)
+m = re.search(r"com\.android\.application' version '([0-9.]+)", root_build)
+c = re.search(r"com\.chaquo\.python' version '([0-9.]+)", root_build)
 if not m or not c:
     errors.append("version contract: could not parse AGP/Chaquopy versions")
 else:
@@ -69,7 +69,7 @@ else:
         errors.append(f"Chaquopy 16.0 / AGP {m.group(1)} compatibility mismatch")
 
 activity = ACTIVITY.read_text(encoding="utf-8")
-decls = re.findall(r"\\b(?:val|var|private\\s+lateinit\\s+var)\\s+(\\w+)\\s*(?::|=)", activity)
+decls = re.findall(r"\b(?:val|var|private\s+lateinit\s+var)\s+(\w+)\s*(?::|=)", activity)
 seen = set()
 dupes = []
 for name in decls:
