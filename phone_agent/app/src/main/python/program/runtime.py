@@ -127,7 +127,7 @@ class AutonomousPhoneRuntime:
             for action in actions:
                 tool=action.get("tool","")
                 allowed={"github.repository","github.file","github.tree","github.commits",
-                         "github.workflow_runs","github.create_file","github.update_file",
+                         "github.workflow_runs","github.workflow_jobs","github.workflow_artifacts","github.create_file","github.update_file",
                          "github.workflow_dispatch","simulation.request","memory.search"}
                 if tool not in allowed:
                     final="BLOCKED: tool is not allow-listed in this runtime."
