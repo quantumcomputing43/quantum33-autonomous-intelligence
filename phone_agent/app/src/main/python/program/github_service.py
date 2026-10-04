@@ -27,6 +27,12 @@ class GitHubService:
     def workflow_runs(self, full_name,per_page=20):
         owner,repo=self._ctx(full_name)
         return self.api.request("GET",f"/repos/{owner}/{repo}/actions/runs?per_page={int(per_page)}")
+    def workflow_jobs(self, full_name, run_id):
+        owner,repo=self._ctx(full_name)
+        return self.api.request("GET",f"/repos/{owner}/{repo}/actions/runs/{int(run_id)}/jobs")
+    def workflow_artifacts(self, full_name, run_id):
+        owner,repo=self._ctx(full_name)
+        return self.api.request("GET",f"/repos/{owner}/{repo}/actions/runs/{int(run_id)}/artifacts")
     def workflow_dispatch(self, full_name, workflow, ref="main", inputs=None):
         owner,repo=self._ctx(full_name)
         path=f"/repos/{owner}/{repo}/actions/workflows/{quote(workflow,safe='')}/dispatches"
