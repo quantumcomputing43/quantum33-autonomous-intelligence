@@ -34,7 +34,8 @@ def decide(envelope: CommandEnvelope) -> Decision:
     write_terms = (
         "write", "commit", "push", "create pull request", "update repository",
         "delete file", "fix", "repair", "modify", "edit", "implement", "develop",
-        "build the app", "change the app", "add feature"
+        "build the app", "change the app", "add feature", "run simulation",
+        "simulation matrix", "dispatch workflow", "start simulation"
     )
     if any(x in lowered for x in write_terms):
         return (Decision.ALLOW if envelope.explicit_write_authorization
