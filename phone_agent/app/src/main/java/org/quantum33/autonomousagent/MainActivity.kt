@@ -1,6 +1,7 @@
 package org.quantum33.autonomousagent
 
 import android.os.Bundle
+import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -13,162 +14,145 @@ import com.chaquo.python.android.AndroidPlatform
 class MainActivity : ComponentActivity() {
     private lateinit var secureStore: SecureStore
 
+    private fun field(hint: String, value: String = "") = EditText(this).apply {
+        this.hint = hint
+        setText(value)
+        minLines = 1
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         secureStore = SecureStore(this)
 
-        if (!Python.isStarted()) {
-            Python.start(AndroidPlatform(this))
-        }
-        val py = Python.getInstance()
-        val agent = py.getModule("phone_agent_bridge")
+        if (!Python.isStarted()) Python.start(AndroidPlatform(this))
+        val agent = Python.getInstance().getModule("phone_agent_bridge")
 
-        val input = EditText(this).apply {
-            hint = "Enter an explicit command"
-            minLines = 3
-        }
-        val tokenInput = EditText(this).apply {
-            hint = "GitHub token (optional; stored encrypted on this phone)"
-            minLines = 1
-        }
-        val repoInput = EditText(this).apply {
-            hint = "Repository owner/name (optional)"
-            setText("quantumcomputing43/quantum33-simulation-matrix")
-        }
-        val modelEndpointInput = EditText(this).apply {
-            hint = "LLM endpoint (optional)"
-        }
-        val modelNameInput = EditText(this).apply {
-            hint = "LLM model name (optional)"
-        }
-        val modelKeyInput = EditText(this).apply {
-            hint = "LLM API key (optional; encrypted if saved)"
-        }
+        val sourceRepo = field(
+            "Agent source repository owner/name",
+            secureStore.get("source_repo") ?: "quantumcomputing43/quantum33-autonomous-intelligence"
+        )
+        val simulationRepo = field(
+            "Simulation Matrix repository owner/name",
+            secureStore.get("simulation_repo") ?: "quantumcomputing43/quantum33-simulation-matrix"
+        )
+        val simulationWorkflow = field(
+            "Simulation workflow file/name",
+            secureStore.get("simulation_workflow") ?: "simulation-matrix.yml"
+        )
+        val tokenInput = field("GitHub token (encrypted on this phone)")
+        tokenInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+
+        val endpoint = field("LLM endpoint, e.g. https://.../v1",
+            secureStore.get("model_endpoint") ?: "")
+        val model = field("LLM model name", secureStore.get("model_name") ?: "")
+        val modelKey = field("LLM API key (encrypted on this phone)")
+        modelKey.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+
+        val command = field("Enter an explicit command for the Agent")
+        command.minLines = 3
+
         val status = TextView(this).apply {
-            text = if (secureStore.has("github_token"))
-                "GitHub credential: configured (encrypted)"
-            else
-                "Privacy mode: local/no credential configured"
+            text = "CONFIGURATION: NOT VALIDATED"
             setPadding(0, 16, 0, 16)
         }
         val output = TextView(this).apply {
-            text = "Anonymous Simulation Matrix\nReady — no command has been executed."
+            text = "Anonymous Simulation Matrix Agent\nSetup required before autonomous execution."
             setPadding(24, 24, 24, 24)
         }
 
-        val saveToken = Button(this).apply { text = "Save GitHub Credential Securely" }
-        val removeToken = Button(this).apply { text = "Remove GitHub Credential" }
-        val saveModel = Button(this).apply { text = "Save LLM Configuration Securely" }
-        val removeModel = Button(this).apply { text = "Remove LLM Configuration" }
-        val run = Button(this).apply { text = "SEND COMMAND" }
-        if (secureStore.has("model_endpoint")) {
-            modelEndpointInput.setText(secureStore.get("model_endpoint") ?: "")
-            modelNameInput.setText(secureStore.get("model_name") ?: "")
-        }
-
-        saveToken.setOnClickListener {
+        fun saveConfig() {
+            secureStore.put("source_repo", sourceRepo.text.toString().trim())
+            secureStore.put("simulation_repo", simulationRepo.text.toString().trim())
+            secureStore.put("simulation_workflow", simulationWorkflow.text.toString().trim())
             val token = tokenInput.text.toString()
-            if (token.isNotBlank()) {
-                secureStore.put("github_token", token)
-                tokenInput.text.clear()
-                status.text = "GitHub credential: configured (encrypted)"
-                output.text = "Credential saved to Android Keystore-backed encrypted storage."
-            } else {
-                output.text = "No credential entered."
-            }
-        }
-
-        removeToken.setOnClickListener {
-            secureStore.remove("github_token")
+            if (token.isNotBlank()) secureStore.put("github_token", token)
+            val ep = endpoint.text.toString().trim()
+            val mn = model.text.toString().trim()
+            val key = modelKey.text.toString()
+            if (ep.isNotBlank()) secureStore.put("model_endpoint", ep)
+            if (mn.isNotBlank()) secureStore.put("model_name", mn)
+            if (key.isNotBlank()) secureStore.put("model_api_key", key)
             tokenInput.text.clear()
-            status.text = "Privacy mode: local/no credential configured"
-            output.text = "GitHub credential removed."
+            modelKey.text.clear()
         }
 
-        saveModel.setOnClickListener {
-            val endpoint = modelEndpointInput.text.toString().trim()
-            val model = modelNameInput.text.toString().trim()
-            val key = modelKeyInput.text.toString()
-            if (endpoint.isNotBlank() && model.isNotBlank() && key.isNotBlank()) {
-                secureStore.put("model_endpoint", endpoint)
-                secureStore.put("model_name", model)
-                secureStore.put("model_api_key", key)
-                modelKeyInput.text.clear()
-                output.text = "LLM configuration saved to Android Keystore-backed encrypted storage."
-            } else {
-                output.text = "Endpoint, model name and API key are required."
-            }
+        val save = Button(this).apply { text = "SAVE CONFIGURATION SECURELY" }
+        val validate = Button(this).apply { text = "VALIDATE CONFIGURATION" }
+        val run = Button(this).apply { text = "SEND COMMAND TO AGENT" }
+
+        save.setOnClickListener {
+            saveConfig()
+            output.text = "Configuration saved in Android Keystore-backed storage."
         }
 
-        removeModel.setOnClickListener {
-            secureStore.remove("model_endpoint")
-            secureStore.remove("model_name")
-            secureStore.remove("model_api_key")
-            modelEndpointInput.text.clear()
-            modelNameInput.text.clear()
-            modelKeyInput.text.clear()
-            output.text = "LLM configuration removed."
+        validate.setOnClickListener {
+            saveConfig()
+            output.text = "Validating GitHub, LLM backend, source repo and Simulation Matrix..."
+            val result = agent.callAttr(
+                "validate_configuration",
+                sourceRepo.text.toString().trim(),
+                simulationRepo.text.toString().trim(),
+                simulationWorkflow.text.toString().trim(),
+                secureStore.get("github_token") ?: "",
+                secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
+                secureStore.get("model_name") ?: model.text.toString().trim(),
+                secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
+            ).toString()
+            output.text = result
+            status.text = if (result.startsWith("READY")) "CONFIGURATION: READY"
+            else "CONFIGURATION: BLOCKED"
         }
 
         run.setOnClickListener {
-            val command = input.text.toString().trim()
-            if (command.isBlank()) {
+            val text = command.text.toString().trim()
+            if (text.isBlank()) {
                 output.text = "No command entered."
                 return@setOnClickListener
             }
-            val explicitWrite = command.lowercase().contains("write") ||
-                command.lowercase().contains("commit") ||
-                command.lowercase().contains("push") ||
-                command.lowercase().contains("pull request")
+            val explicitWrite = text.lowercase().let {
+                it.contains("write") || it.contains("commit") || it.contains("push") ||
+                it.contains("create file") || it.contains("update file") || it.contains("pull request")
+            }
+            val execute = {
+                output.text = agent.callAttr(
+                    "handle_command",
+                    text,
+                    sourceRepo.text.toString().trim(),
+                    secureStore.get("github_token") ?: "",
+                    explicitWrite,
+                    secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
+                    secureStore.get("model_name") ?: model.text.toString().trim(),
+                    secureStore.get("model_api_key") ?: modelKey.text.toString().trim(),
+                    simulationRepo.text.toString().trim()
+                ).toString()
+            }
             if (explicitWrite) {
                 CommandConfirmation.confirmWrite(
                     this,
-                    "This command may modify a repository. Authorize this single operation only."
-                ) {
-                    output.text = agent.callAttr(
-                        "handle_command",
-                        command,
-                        repoInput.text.toString(),
-                        secureStore.get("github_token") ?: "",
-                        true,
-                        secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
-                        secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
-                        secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
-                    ).toString()
-                }
-            } else {
-                output.text = agent.callAttr(
-                    "handle_command",
-                    command,
-                    repoInput.text.toString(),
-                    secureStore.get("github_token") ?: "",
-                    false,
-                    secureStore.get("model_endpoint") ?: modelEndpointInput.text.toString().trim(),
-                    secureStore.get("model_name") ?: modelNameInput.text.toString().trim(),
-                    secureStore.get("model_api_key") ?: modelKeyInput.text.toString().trim()
-                ).toString()
-            }
+                    "This Agent command may modify the source or simulation repository. Authorize this single operation only.",
+                    execute
+                )
+            } else execute()
         }
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
-            addView(repoInput)
-            addView(modelEndpointInput)
-            addView(modelNameInput)
-            addView(modelKeyInput)
+            addView(TextView(context).apply { text = "AGENT CONFIGURATION" })
+            addView(sourceRepo)
+            addView(simulationRepo)
+            addView(simulationWorkflow)
             addView(tokenInput)
-            addView(saveToken)
-            addView(removeToken)
-            addView(saveModel)
-            addView(removeModel)
+            addView(endpoint)
+            addView(model)
+            addView(modelKey)
+            addView(save)
+            addView(validate)
             addView(status)
-            addView(input)
+            addView(command)
             addView(run)
             addView(output)
         }
-
-        setContentView(ScrollView(this).apply {
-            addView(content)
-        })
+        setContentView(ScrollView(this).apply { addView(content) })
     }
 }
