@@ -43,7 +43,7 @@ contracts = [
     (ACTIVITY, "SEND COMMAND TO AGENT", "command action UI"),
     (BRIDGE, "def validate_configuration(", "configuration validation bridge"),
     (BRIDGE, "def handle_command(", "Python command bridge"),
-    (RUNTIME, "MAX_STEPS = 6", "bounded autonomous loop"),
+    (RUNTIME, "MAX_CYCLES = ", "bounded autonomous loop"),
     (RUNTIME, "validate_configuration", "runtime configuration validation"),
     (TOOL_EXECUTOR, "class ToolExecutor", "allow-listed tool executor"),
     (TOOL_EXECUTOR, "self._write()", "write authorization gate"),
