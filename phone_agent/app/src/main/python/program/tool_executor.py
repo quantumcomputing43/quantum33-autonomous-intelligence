@@ -17,8 +17,12 @@ class ToolExecutor:
             self._write(); return self.github.create_file(args["repository"],args["path"],args["content"],args["message"],args.get("branch","main"))
         if tool=="github.update_file":
             self._write(); return self.github.update_file(args["repository"],args["path"],args["content"],args["message"],args["sha"],args.get("branch","main"))
+        if tool=="github.workflow_dispatch":
+            self._write(); return self.github.workflow_dispatch(args["repository"],args["workflow"],args.get("ref","main"),args.get("inputs"))
         if tool=="simulation.request":
-            return self.simulation.build_and_dispatch(args["project_id"],args["contract_path"],int(args["level"]),args.get("command",""),args["workflow"],args.get("ref","main"))
+            return self.simulation.build_and_dispatch(
+                args["project_id"],args["contract_path"],int(args["level"]),args.get("command",""),
+                args["workflow"],args["repository"],args.get("ref","main"))
         if tool=="memory.search":
             return [] if self.memory is None else self.memory.search(args.get("text",""),args.get("project"))
         raise ValueError("Tool not allow-listed: "+str(tool))
