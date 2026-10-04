@@ -28,9 +28,17 @@ class AutonomousPhoneRuntime:
             try:
                 gh=GitHubService(github_token)
                 src=gh.repository(source_repo)
-                checks.append(("Agent source repo","PASS",src.get("full_name",source_repo)))
+                src_perms=src.get("permissions") or {}
+                if src_perms and src_perms.get("push") is False:
+                    checks.append(("Agent source repo","BLOCKED","GitHub credential lacks push permission"))
+                else:
+                    checks.append(("Agent source repo","PASS",src.get("full_name",source_repo)))
                 sim=gh.repository(simulation_repo)
-                checks.append(("Simulation Matrix repo","PASS",sim.get("full_name",simulation_repo)))
+                sim_perms=sim.get("permissions") or {}
+                if sim_perms and sim_perms.get("push") is False:
+                    checks.append(("Simulation Matrix repo","BLOCKED","GitHub credential lacks repository write permission"))
+                else:
+                    checks.append(("Simulation Matrix repo","PASS",sim.get("full_name",simulation_repo)))
                 workflow_path=simulation_workflow
                 if not workflow_path.startswith(".github/workflows/"):
                     workflow_path=".github/workflows/"+workflow_path
