@@ -89,7 +89,10 @@ class TaskVerifierRegistry:
                     "expected_conclusion": contract["conclusion"],
                     "passed": passed,
                 }]
-                return self._result(contract, passed, "Workflow conclusion checked against exact GitHub run.", evidence)
+                return self._result(
+                    contract, passed, "Workflow conclusion checked against exact GitHub run.", evidence,
+                    goal_match=passed and contract["conclusion"] == "success",
+                )
 
             if contract["type"] == "latest_workflow":
                 branch = self.github.branch(repo, contract["ref"])
@@ -125,7 +128,10 @@ class TaskVerifierRegistry:
                 detail = ("Latest completed workflow run matches branch HEAD and requested conclusion."
                           if passed else
                           "No qualifying run for current branch HEAD, or latest run conclusion differs.")
-                return self._result(contract, passed, detail, evidence)
+                return self._result(
+                    contract, passed, detail, evidence,
+                    goal_match=passed and contract["conclusion"] == "success",
+                )
 
             if contract["type"] == "artifact_exists":
                 payload = self.github.workflow_artifacts(repo, int(contract["run_id"]))
@@ -147,11 +153,11 @@ class TaskVerifierRegistry:
         return self._result(contract, False, "Unsupported verification type.")
 
     @staticmethod
-    def _result(contract, passed, detail, evidence=None):
+    def _result(contract, passed, detail, evidence=None, goal_match=None):
         return {
             "kind": "verification",
             "status": "PASS" if passed else "FAIL",
-            "goal_match": bool(passed),
+            "goal_match": bool(passed if goal_match is None else goal_match),
             "contract_type": contract["type"],
             "requested_command_sha256": contract["requested_command_sha256"],
             "evidence": evidence or [],
