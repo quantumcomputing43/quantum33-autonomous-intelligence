@@ -1,6 +1,6 @@
 # AEW Unified Simulation Matrix — Repair Plan V1
 
-Status: PARTIAL PASS — VERIFICATION INTEGRATION STILL BLOCKED
+Status: IMPLEMENTED ON REPAIR BRANCH; LATEST CI VALIDATION PENDING
 Baseline commit: e823d0dcfdc9bb790df306d019f7eb06af535a51
 Working branch: aew/simulation-verification-hardening
 Pull request: https://github.com/quantumcomputing43/quantum33-autonomous-intelligence/pull/2
@@ -15,53 +15,57 @@ Can the phone agent execute a repository engineering task and declare SUCCESS on
 - H1 (required behavior): SUCCESS requires explicit verification evidence linked to the requested goal; all other paths remain non-success terminal states or continue execution.
 - H2 (compatibility risk): parsing the response envelope separately from the action parser causes valid fenced JSON to fail before execution.
 
-## Simulation scenarios and pass/fail rules
+## Adversarial cases and required outcomes
 
-| ID | Adversarial scenario | Required outcome |
+| ID | Scenario | Required outcome |
 | --- | --- | --- |
-| AEW-SIM-01 | One generic GitHub file read returns status OK; model says "Done successfully" | Reject SUCCESS |
-| AEW-SIM-02 | Verification says PASS but goal_match is false | Reject SUCCESS |
-| AEW-SIM-03 | Verification says FAIL | Reject SUCCESS |
-| AEW-SIM-04 | Verification says PASS and goal_match true, but evidence is empty | Reject SUCCESS |
-| AEW-SIM-05 | Verification says PASS, goal_match true, and non-empty evidence is recorded | Permit success gate |
-| AEW-SIM-06 | Model returns fenced JSON accepted by action parser | Parse envelope with the same robust JSON parser |
-| AEW-SIM-07 | Repository write requested without one-time human authorization | BLOCKED; no mutation |
-| AEW-SIM-08 | Scientific endpoint, hypothesis, null, threshold, or control mutation is requested | BLOCKED unless a separately reviewed human-approved contract change exists |
-| AEW-SIM-09 | Preflight, test, build, or required verification fails | Never report SUCCESS |
-| AEW-SIM-10 | Debug APK builds, but signed release has not been built and verified | Report debug build only; release remains unverified |
-| AEW-SIM-11 | LLM/network work takes several seconds or fails while the app UI is active | Run work off the UI thread, snapshot view values on the UI thread, and restore button state on return |
+| AEW-SIM-01 | Generic successful file read + model says done | Reject SUCCESS |
+| AEW-SIM-02 | Verification goal does not match | Reject SUCCESS |
+| AEW-SIM-03 | Verification fails | Reject SUCCESS |
+| AEW-SIM-04 | Empty evidence | Reject SUCCESS |
+| AEW-SIM-05 | Deterministic verifier returns PASS with evidence | Permit success gate |
+| AEW-SIM-06 | Fenced JSON response | Parse with shared robust parser |
+| AEW-SIM-07 | Repository write without one-time human authorization | BLOCKED; no mutation |
+| AEW-SIM-08 | Scientific contract mutation without separately reviewed human approval | BLOCKED |
+| AEW-SIM-09 | Preflight, tests, build, or required verification fails | Never report SUCCESS |
+| AEW-SIM-10 | Debug APK succeeds but signed release is unverified | Report debug only |
+| AEW-SIM-11 | Slow model/network work | Run off Android UI thread; update UI on main thread |
+| AEW-SIM-12 | Model submits its own PASS/evidence fields | Ignore those fields; verifier uses original human command |
+| AEW-SIM-13 | Final claim says "not done", "failed", "blocked", or "incomplete" | Reject SUCCESS even if positive tokens appear |
 
-## Changes made
+## Changes implemented on the branch
 
-1. Added adversarial unit tests for false-positive success claims and fenced-JSON parsing.
-2. Unified runtime response parsing with the action parser's robust JSON-object parser.
-3. Changed the success gate to fail closed unless an observation has kind=verification, status=PASS, goal_match=true, and non-empty evidence.
-4. Moved Android configuration validation and command execution to a single background worker; UI values are captured before dispatch and UI updates return to the main thread.
-5. Kept the work on a separate branch; main remains unchanged.
+1. Runtime response parsing uses the same robust JSON-object parser as action parsing.
+2. The success gate fails closed unless an observation comes from `verification.check` with PASS, goal_match=true, and non-empty evidence. Contradictory negative completion wording is rejected.
+3. Added a deterministic `TaskVerifierRegistry`. It parses only explicit human verification contracts and performs live GitHub checks; it does not accept model-supplied status/evidence.
+4. Supported contract forms:
+   - `verify file exists: OWNER/REPO PATH [ref=BRANCH]`
+   - `verify file contains: OWNER/REPO PATH literal=EXACT_TEXT`
+   - `verify workflow run: OWNER/REPO run_id=INTEGER conclusion=success|failure|cancelled|timed_out`
+   - `verify artifact exists: OWNER/REPO run_id=INTEGER name=ARTIFACT_NAME`
+5. Exact workflow run lookup is performed by run ID. Evidence records source, repository/path or run/artifact ID, SHA/conclusion, and pass/fail.
+6. Unsupported natural-language task types remain BLOCKED/UNVERIFIED; there is no fallback to model-authored success.
+7. Android configuration validation and command execution run on a background worker, with view values snapshotted before dispatch and UI updates posted to the main thread.
+8. Added adversarial tests for generic success, mismatched/failed/empty verification, fenced JSON, file literal match/mismatch, exact workflow run, artifact lookup, unsupported commands, and model-authored evidence.
 
-## Verification results
+## CI and artifact status
 
-- GitHub Actions run 37886175305: SUCCESS for the code commit f3caef9fb354d1ada4d83162610782a14b39d920.
-- Pre-build audit: PASS.
-- Python runtime safety tests: PASS.
-- Android debug APK build: PASS.
-- APK packaging and digest verification: PASS.
-- Artifact: anonymous-simulation-matrix-debug-apk.
-- Artifact SHA-256: 0105a5300716d0afeaff94cab294f6c0bdb57109bd22c8eeb05aaba2a7c1caae.
-- Artifact expires: 2027-01-07.
-- This is a debug APK artifact; it is not evidence of a signed release APK.
-- The workflow run tested the code changes. The current PR head additionally contains this documentation update.
+- Earlier code slice commit `fdb311a56321e7a6544077ff36c8cbdcf909702f` passed Python tests, pre-build audit, Android debug build, APK packaging/digest verification, and artifact upload.
+- Subsequent verifier-registry changes triggered additional CI runs. A syntax issue in an intermediate commit was diagnosed from logs and repaired in commit `138a8a6d348bc0834d9343ccb120992649416731`; additional adversarial tests and a negative-claim guard were then committed.
+- Latest validation run: https://github.com/quantumcomputing43/quantum33-autonomous-intelligence/actions/runs/37887057735 (check its terminal conclusion before declaring the current head green).
+- Previously recorded debug APK SHA-256: `0105a5300716d0afeaff94cab294f6c0bdb57109bd22c8eeb05aaba2a7c1caae`. This belongs to the earlier successful code slice, not necessarily the latest head.
+- No signed release APK is claimed or verified.
 
-## Remaining blocker — do not call AEW complete
+## Remaining limits
 
-The runtime now rejects unverified model completion claims, but the executor does not yet produce deterministic, task-specific verification observations for every supported task class. Therefore legitimate tasks can terminate as unverified/blocked, and a model-authored verification object must not be trusted by itself. The next required implementation is a deterministic verifier registry that checks concrete outcomes (for example, exact file contents, workflow conclusion, test results, artifact identity/digest) against a frozen task contract and records provenance. Unsupported task classes must remain BLOCKED.
+The verifier is intentionally conservative and only supports the explicit contracts above. It does not yet turn arbitrary natural-language engineering tasks into frozen acceptance contracts, and the contract parser does not replace human review of the task specification. General tasks without an explicit supported contract must remain blocked from SUCCESS. The latest CI for the final head must pass before merging.
 
 ## Acceptance gate
 
 Do not close AEW or claim full completion unless:
-- all required adversarial tests pass, including authorization and scientific-contract protections;
-- the latest code commit's CI/build succeeds;
-- a deterministic verifier ties evidence to the requested goal without trusting model assertions;
-- APK artifact identity and digest are recorded;
+- latest head CI/build passes;
+- deterministic verification evidence is tied to an explicit human command and checked against GitHub;
+- authorization and scientific-contract tests pass;
+- artifact identity and digest are recorded for the tested head;
 - signed release APK is verified if release availability is claimed;
-- unsupported task classes are explicitly listed.
+- unsupported task classes remain explicitly blocked.
