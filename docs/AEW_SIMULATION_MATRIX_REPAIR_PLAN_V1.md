@@ -55,7 +55,7 @@ Can the phone agent execute a repository engineering task and declare SUCCESS on
 
 - Earlier code slice commit `fdb311a56321e7a6544077ff36c8cbdcf909702f` passed Python tests, pre-build audit, Android debug build, APK packaging/digest verification, and artifact upload.
 - The previously confirmed CI run for commit `3af752906b9a664f4100a70c844e536386fd536f` passed all those checks. Run: https://github.com/quantumcomputing43/quantum33-autonomous-intelligence/actions/runs/37887057735.
-- Additional verifier code and adversarial tests have now been committed after that run. The current head is `70f4923398ce48bc32fd5e200ad8ea381f9efc7f`. A passing CI run for this exact head has **not yet been confirmed**, so the new code is not yet declared CI-validated.
+- Additional verifier code and adversarial tests have now been committed after that run. The latest code commit is `70f4923398ce48bc32fd5e200ad8ea381f9efc7f` (a documentation-only commit follows it). A passing CI run for this code commit has **not yet been confirmed**, so the new code is not yet declared CI-validated.
 - Previously uploaded artifact: ID `11597126036`, name `anonymous-simulation-matrix-debug-apk`, size 19,524,330 bytes, expires 2027-01-07. SHA-256: `35fe9281951e6e03d477e135bfaeb1395247552cd6b9fc0029e6076d8bf14426`. This artifact belongs to the earlier validated code, not the current head.
 - No signed release APK is claimed or verified.
 
