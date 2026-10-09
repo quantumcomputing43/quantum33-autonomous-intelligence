@@ -29,6 +29,10 @@ class ToolExecutor:
             return self.simulation.build_and_dispatch(
                 args["project_id"],args["contract_path"],int(args["level"]),args.get("command",""),
                 args["workflow"],args["repository"],args.get("ref","main"))
+        if tool=="verification.check":
+            if self.verifier is None:
+                raise RuntimeError("Task verification service is unavailable")
+            return self.verifier.verify_command(self.task_command)
         if tool=="memory.search":
             return [] if self.memory is None else self.memory.search(args.get("text",""),args.get("project"))
         raise ValueError("Tool not allow-listed: "+str(tool))
