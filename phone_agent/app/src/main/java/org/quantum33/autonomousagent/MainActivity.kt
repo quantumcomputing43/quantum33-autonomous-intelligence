@@ -140,7 +140,7 @@ class MainActivity : ComponentActivity() {
                             secureStore.get("github_token") ?: "",
                             explicitWrite,
                             secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
-                            secureStore.get("model_name") ?: endpoint.text.toString().trim(),
+                            secureStore.get("model_name") ?: model.text.toString().trim(),
                             secureStore.get("model_api_key") ?: "",
                             simulationRepo.text.toString().trim()
                         ).toString()
