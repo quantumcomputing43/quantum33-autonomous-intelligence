@@ -89,21 +89,21 @@ class MainActivity : ComponentActivity() {
 
         validate.setOnClickListener {
             saveConfig()
-            val sourceRepoValue = sourceRepo.text.toString().trim()
-            val simulationRepoValue = simulationRepo.text.toString().trim()
-            val workflowValue = simulationWorkflow.text.toString().trim()
-            val tokenValue = secureStore.get("github_token") ?: ""
-            val endpointValue = secureStore.get("model_endpoint") ?: endpoint.text.toString().trim()
-            val modelValue = secureStore.get("model_name") ?: model.text.toString().trim()
-            val keyValue = secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
+            val validationSourceRepoValue = sourceRepo.text.toString().trim()
+            val validationSimulationRepoValue = simulationRepo.text.toString().trim()
+            val validationWorkflowValue = simulationWorkflow.text.toString().trim()
+            val validationTokenValue = secureStore.get("github_token") ?: ""
+            val validationEndpointValue = secureStore.get("model_endpoint") ?: endpoint.text.toString().trim()
+            val validationModelValue = secureStore.get("model_name") ?: model.text.toString().trim()
+            val validationKeyValue = secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
             validate.isEnabled = false
             output.text = "Validating GitHub, LLM backend, source repo and Simulation Matrix..."
             worker.execute {
                 val result = try {
                     agent.callAttr(
                         "validate_configuration",
-                        sourceRepoValue, simulationRepoValue, workflowValue,
-                        tokenValue, endpointValue, modelValue, keyValue
+                        validationSourceRepoValue, validationSimulationRepoValue, validationWorkflowValue,
+                        validationTokenValue, validationEndpointValue, validationModelValue, validationKeyValue
                     ).toString()
                 } catch (e: Exception) {
                     "BLOCKED: configuration validation failed: ${e.message ?: "unknown error"}"
