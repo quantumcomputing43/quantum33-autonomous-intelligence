@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
             validate.isEnabled = false
             output.text = "Validating GitHub, LLM backend, source repo and Simulation Matrix..."
             worker.execute {
-                val result = try {
+                val validationResult = try {
                     agent.callAttr(
                         "validate_configuration",
                         validationSourceRepoValue, validationSimulationRepoValue, validationWorkflowValue,
@@ -109,8 +109,8 @@ class MainActivity : ComponentActivity() {
                     "BLOCKED: configuration validation failed: ${e.message ?: "unknown error"}"
                 }
                 runOnUiThread {
-                    output.text = result
-                    status.text = if (result.startsWith("READY")) "CONFIGURATION: READY"
+                    output.text = validationResult
+                    status.text = if (validationResult.startsWith("READY")) "CONFIGURATION: READY"
                     else "CONFIGURATION: BLOCKED"
                     validate.isEnabled = true
                 }
@@ -140,7 +140,7 @@ class MainActivity : ComponentActivity() {
                 run.isEnabled = false
                 output.text = "Agent is working: preflight, simulation, execution and verification..."
                 worker.execute {
-                    val result = try {
+                    val executionResult = try {
                         agent.callAttr(
                             "handle_command", text, sourceRepoValue, tokenValue,
                             explicitWrite, endpointValue, modelValue, keyValue, simulationRepoValue
@@ -149,7 +149,7 @@ class MainActivity : ComponentActivity() {
                         "VERIFICATION_FAILED: agent execution failed: ${e.message ?: "unknown error"}"
                     }
                     runOnUiThread {
-                        output.text = result
+                        output.text = executionResult
                         run.isEnabled = true
                     }
                 }
