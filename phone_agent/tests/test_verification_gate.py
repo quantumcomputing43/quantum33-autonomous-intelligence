@@ -35,3 +35,13 @@ def test_fenced_json_uses_same_robust_parser_as_action_plan():
     parsed = ToolExecutor.parse_json_object(response)
     assert parsed["final"] == "not verified"
     assert parsed["actions"] == []
+
+def test_negative_completion_language_never_marks_success():
+    evidence = [{
+        "kind": "verification",
+        "status": "PASS",
+        "goal_match": True,
+        "evidence": [{"source": "ci", "result": "success"}],
+    }]
+    for claim in ("Not done yet", "Task failed", "No success", "Blocked: incomplete"):
+        assert not AutonomousPhoneRuntime._is_verified_success(claim, evidence)
