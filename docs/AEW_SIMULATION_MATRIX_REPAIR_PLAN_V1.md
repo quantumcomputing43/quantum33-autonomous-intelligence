@@ -1,6 +1,6 @@
 # AEW Unified Simulation Matrix — Repair Plan V1
 
-Status: IMPLEMENTED ON REPAIR BRANCH; LATEST CI VALIDATION PENDING
+Status: CODE CI PASS; GENERAL-PURPOSE TASK VERIFICATION REMAINS LIMITED
 Baseline commit: e823d0dcfdc9bb790df306d019f7eb06af535a51
 Working branch: aew/simulation-verification-hardening
 Pull request: https://github.com/quantumcomputing43/quantum33-autonomous-intelligence/pull/2
@@ -52,13 +52,13 @@ Can the phone agent execute a repository engineering task and declare SUCCESS on
 
 - Earlier code slice commit `fdb311a56321e7a6544077ff36c8cbdcf909702f` passed Python tests, pre-build audit, Android debug build, APK packaging/digest verification, and artifact upload.
 - Subsequent verifier-registry changes triggered additional CI runs. A syntax issue in an intermediate commit was diagnosed from logs and repaired in commit `138a8a6d348bc0834d9343ccb120992649416731`; additional adversarial tests and a negative-claim guard were then committed.
-- Latest validation run: https://github.com/quantumcomputing43/quantum33-autonomous-intelligence/actions/runs/37887057735 (check its terminal conclusion before declaring the current head green).
-- Previously recorded debug APK SHA-256: `0105a5300716d0afeaff94cab294f6c0bdb57109bd22c8eeb05aaba2a7c1caae`. This belongs to the earlier successful code slice, not necessarily the latest head.
+- Latest code-validation run: PASS, commit `3af752906b9a664f4100a70c844e536386fd536f`; run https://github.com/quantumcomputing43/quantum33-autonomous-intelligence/actions/runs/37887057735. Python safety tests, pre-build audit, Android debug build, APK packaging/digest verification, and artifact upload all passed. The current PR head adds a documentation-only update after this tested code commit.
+- Debug APK artifact ID `11597126036`, name `anonymous-simulation-matrix-debug-apk`, size 19,524,330 bytes, expires 2027-01-07. Artifact SHA-256: `35fe9281951e6e03d477e135bfaeb1395247552cd6b9fc0029e6076d8bf14426`. This is a debug APK, not a signed release APK.
 - No signed release APK is claimed or verified.
 
 ## Remaining limits
 
-The verifier is intentionally conservative and only supports the explicit contracts above. It does not yet turn arbitrary natural-language engineering tasks into frozen acceptance contracts, and the contract parser does not replace human review of the task specification. General tasks without an explicit supported contract must remain blocked from SUCCESS. The latest CI for the final head must pass before merging.
+The verifier is intentionally conservative and only supports the explicit contracts above. It does not yet turn arbitrary natural-language engineering tasks into frozen acceptance contracts, and the contract parser does not replace human review of the task specification. General tasks without an explicit supported contract must remain blocked from SUCCESS. The latest code CI passed; rerun CI after any further code changes before merging.
 
 ## Acceptance gate
 
