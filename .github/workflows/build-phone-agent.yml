@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'phone_agent/**'
+      - 'docs/AEW_SIMULATION_MATRIX_REPAIR_PLAN_V1.md'
       - '.github/workflows/build-phone-agent.yml'
 
 permissions:
