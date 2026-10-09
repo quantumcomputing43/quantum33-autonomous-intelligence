@@ -27,6 +27,9 @@ class GitHubService:
     def workflow_runs(self, full_name,per_page=20):
         owner,repo=self._ctx(full_name)
         return self.api.request("GET",f"/repos/{owner}/{repo}/actions/runs?per_page={int(per_page)}")
+    def workflow_run(self, full_name, run_id):
+        owner,repo=self._ctx(full_name)
+        return self.api.request("GET",f"/repos/{owner}/{repo}/actions/runs/{int(run_id)}")
     def workflow_jobs(self, full_name, run_id):
         owner,repo=self._ctx(full_name)
         return self.api.request("GET",f"/repos/{owner}/{repo}/actions/runs/{int(run_id)}/jobs")
