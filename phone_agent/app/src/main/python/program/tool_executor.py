@@ -3,9 +3,11 @@ from program.task_verifier import TaskVerifierRegistry
 
 class ToolExecutor:
     """Allow-listed execution. Repository writes and workflow dispatches require explicit human authorization."""
-    def __init__(self, github_service=None, simulation_bridge=None, memory_store=None, write_authorized=False):
+    def __init__(self, github_service=None, simulation_bridge=None, memory_store=None, write_authorized=False, task_command=""):
         self.github=github_service; self.simulation=simulation_bridge
         self.memory=memory_store; self.write_authorized=bool(write_authorized)
+        self.task_command = str(task_command)
+        self.verifier = TaskVerifierRegistry(github_service) if github_service is not None else None
 
     def execute(self, action):
         tool=action.get("tool"); args=action.get("args") or {}
