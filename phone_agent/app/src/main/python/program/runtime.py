@@ -123,7 +123,7 @@ class AutonomousPhoneRuntime:
 
         bridge=SimulationMatrixBridge(gh)
         executor=ToolExecutor(gh,bridge,self.memory,
-                              write_authorized=explicit_write_authorization)
+                              write_authorized=explicit_write_authorization, task_command=command)
         memory=self.memory.search(command,repository)[:20]
         final=None
         verified=False
@@ -171,8 +171,12 @@ class AutonomousPhoneRuntime:
                 tool=action.get("tool","")
                 try:
                     result=executor.execute(action)
-                    obs={"cycle":state.cycle,"tool":tool,"status":"OK",
-                         "result":repr(result)[:12000]}
+                    if tool == "verification.check" and isinstance(result, dict) and result.get("kind") == "verification":
+                        obs=dict(result)
+                        obs.update({"cycle":state.cycle,"tool":tool})
+                    else:
+                        obs={"cycle":state.cycle,"tool":tool,"status":"OK",
+                             "result":repr(result)[:12000]}
                 except PermissionError as exc:
                     obs={"cycle":state.cycle,"tool":tool,"status":"BLOCKED",
                          "error":str(exc)}
