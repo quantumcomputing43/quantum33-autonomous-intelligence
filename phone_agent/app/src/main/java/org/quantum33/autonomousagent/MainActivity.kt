@@ -7,12 +7,14 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import java.util.concurrent.Executors
 import androidx.activity.ComponentActivity
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 
 class MainActivity : ComponentActivity() {
     private lateinit var secureStore: SecureStore
+    private val worker = Executors.newSingleThreadExecutor()
 
     private fun field(hint: String, value: String = "") = EditText(this).apply {
         this.hint = hint
@@ -87,20 +89,32 @@ class MainActivity : ComponentActivity() {
 
         validate.setOnClickListener {
             saveConfig()
+            val validationSourceRepoValue = sourceRepo.text.toString().trim()
+            val validationSimulationRepoValue = simulationRepo.text.toString().trim()
+            val validationWorkflowValue = simulationWorkflow.text.toString().trim()
+            val validationTokenValue = secureStore.get("github_token") ?: ""
+            val validationEndpointValue = secureStore.get("model_endpoint") ?: endpoint.text.toString().trim()
+            val validationModelValue = secureStore.get("model_name") ?: model.text.toString().trim()
+            val validationKeyValue = secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
+            validate.isEnabled = false
             output.text = "Validating GitHub, LLM backend, source repo and Simulation Matrix..."
-            val result = agent.callAttr(
-                "validate_configuration",
-                sourceRepo.text.toString().trim(),
-                simulationRepo.text.toString().trim(),
-                simulationWorkflow.text.toString().trim(),
-                secureStore.get("github_token") ?: "",
-                secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
-                secureStore.get("model_name") ?: model.text.toString().trim(),
-                secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
-            ).toString()
-            output.text = result
-            status.text = if (result.startsWith("READY")) "CONFIGURATION: READY"
-            else "CONFIGURATION: BLOCKED"
+            worker.execute {
+                val validationResult = try {
+                    agent.callAttr(
+                        "validate_configuration",
+                        validationSourceRepoValue, validationSimulationRepoValue, validationWorkflowValue,
+                        validationTokenValue, validationEndpointValue, validationModelValue, validationKeyValue
+                    ).toString()
+                } catch (e: Exception) {
+                    "BLOCKED: configuration validation failed: ${e.message ?: "unknown error"}"
+                }
+                runOnUiThread {
+                    output.text = validationResult
+                    status.text = if (validationResult.startsWith("READY")) "CONFIGURATION: READY"
+                    else "CONFIGURATION: BLOCKED"
+                    validate.isEnabled = true
+                }
+            }
         }
 
         run.setOnClickListener {
@@ -116,18 +130,29 @@ class MainActivity : ComponentActivity() {
                 it.contains("develop") || it.contains("implement") || it.contains("run simulation") ||
                 it.contains("simulation matrix") || it.contains("dispatch workflow")
             }
+            val sourceRepoValue = sourceRepo.text.toString().trim()
+            val simulationRepoValue = simulationRepo.text.toString().trim()
+            val tokenValue = secureStore.get("github_token") ?: ""
+            val endpointValue = secureStore.get("model_endpoint") ?: endpoint.text.toString().trim()
+            val modelValue = secureStore.get("model_name") ?: model.text.toString().trim()
+            val keyValue = secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
             val execute = {
-                output.text = agent.callAttr(
-                    "handle_command",
-                    text,
-                    sourceRepo.text.toString().trim(),
-                    secureStore.get("github_token") ?: "",
-                    explicitWrite,
-                    secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
-                    secureStore.get("model_name") ?: model.text.toString().trim(),
-                    secureStore.get("model_api_key") ?: modelKey.text.toString().trim(),
-                    simulationRepo.text.toString().trim()
-                ).toString()
+                run.isEnabled = false
+                output.text = "Agent is working: preflight, simulation, execution and verification..."
+                worker.execute {
+                    val executionResult = try {
+                        agent.callAttr(
+                            "handle_command", text, sourceRepoValue, tokenValue,
+                            explicitWrite, endpointValue, modelValue, keyValue, simulationRepoValue
+                        ).toString()
+                    } catch (e: Exception) {
+                        "VERIFICATION_FAILED: agent execution failed: ${e.message ?: "unknown error"}"
+                    }
+                    runOnUiThread {
+                        output.text = executionResult
+                        run.isEnabled = true
+                    }
+                }
             }
             if (explicitWrite) {
                 CommandConfirmation.confirmWrite(
@@ -157,5 +182,10 @@ class MainActivity : ComponentActivity() {
             addView(output)
         }
         setContentView(ScrollView(this).apply { addView(content) })
+    }
+
+    override fun onDestroy() {
+        worker.shutdownNow()
+        super.onDestroy()
     }
 }

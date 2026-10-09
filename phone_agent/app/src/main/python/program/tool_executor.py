@@ -1,10 +1,13 @@
 import json
+from program.task_verifier import TaskVerifierRegistry
 
 class ToolExecutor:
     """Allow-listed execution. Repository writes and workflow dispatches require explicit human authorization."""
-    def __init__(self, github_service=None, simulation_bridge=None, memory_store=None, write_authorized=False):
+    def __init__(self, github_service=None, simulation_bridge=None, memory_store=None, write_authorized=False, task_command=""):
         self.github=github_service; self.simulation=simulation_bridge
         self.memory=memory_store; self.write_authorized=bool(write_authorized)
+        self.task_command = str(task_command)
+        self.verifier = TaskVerifierRegistry(github_service) if github_service is not None else None
 
     def execute(self, action):
         tool=action.get("tool"); args=action.get("args") or {}
@@ -26,6 +29,10 @@ class ToolExecutor:
             return self.simulation.build_and_dispatch(
                 args["project_id"],args["contract_path"],int(args["level"]),args.get("command",""),
                 args["workflow"],args["repository"],args.get("ref","main"))
+        if tool=="verification.check":
+            if self.verifier is None:
+                raise RuntimeError("Task verification service is unavailable")
+            return self.verifier.verify_command(self.task_command)
         if tool=="memory.search":
             return [] if self.memory is None else self.memory.search(args.get("text",""),args.get("project"))
         raise ValueError("Tool not allow-listed: "+str(tool))

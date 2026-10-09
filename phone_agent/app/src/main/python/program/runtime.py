@@ -123,7 +123,7 @@ class AutonomousPhoneRuntime:
 
         bridge=SimulationMatrixBridge(gh)
         executor=ToolExecutor(gh,bridge,self.memory,
-                              write_authorized=explicit_write_authorization)
+                              write_authorized=explicit_write_authorization, task_command=command)
         memory=self.memory.search(command,repository)[:20]
         final=None
         verified=False
@@ -141,7 +141,7 @@ class AutonomousPhoneRuntime:
                 final="BLOCKED: model reasoning unavailable."
                 break
             try:
-                raw=json.loads(reasoning["response"])
+                raw=ToolExecutor.parse_json_object(reasoning["response"])
                 plan=ToolExecutor.parse_actions(reasoning["response"])
                 if raw.get("final"):
                     candidate=str(raw["final"])
@@ -171,8 +171,12 @@ class AutonomousPhoneRuntime:
                 tool=action.get("tool","")
                 try:
                     result=executor.execute(action)
-                    obs={"cycle":state.cycle,"tool":tool,"status":"OK",
-                         "result":repr(result)[:12000]}
+                    if tool == "verification.check" and isinstance(result, dict) and result.get("kind") == "verification":
+                        obs=dict(result)
+                        obs.update({"cycle":state.cycle,"tool":tool})
+                    else:
+                        obs={"cycle":state.cycle,"tool":tool,"status":"OK",
+                             "result":repr(result)[:12000]}
                 except PermissionError as exc:
                     obs={"cycle":state.cycle,"tool":tool,"status":"BLOCKED",
                          "error":str(exc)}
@@ -201,10 +205,26 @@ class AutonomousPhoneRuntime:
 
     @staticmethod
     def _is_verified_success(candidate, observations):
+        """Fail closed unless task-specific verification evidence is present."""
         text=candidate.lower()
-        if "success" not in text and "completed" not in text and "done" not in text:
+        if any(marker in text for marker in (
+            "not done", "not completed", "no success", "unsuccessful",
+            "failed", "failure", "blocked", "incomplete", "not verified"
+        )):
             return False
-        return any(o.get("status")=="OK" for o in observations)
+        if not any(marker in text for marker in ("success", "completed", "done")):
+            return False
+        for observation in observations:
+            if observation.get("kind") != "verification":
+                continue
+            if observation.get("status") != "PASS":
+                continue
+            if observation.get("goal_match") is not True:
+                continue
+            evidence = observation.get("evidence")
+            if isinstance(evidence, list) and evidence:
+                return True
+        return False
 
     def _record(self,command,repository,decision,message,steps=0):
         row={"timestamp":datetime.now(timezone.utc).isoformat(),"command":command,
