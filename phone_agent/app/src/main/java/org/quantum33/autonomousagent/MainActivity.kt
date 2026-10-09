@@ -89,19 +89,21 @@ class MainActivity : ComponentActivity() {
 
         validate.setOnClickListener {
             saveConfig()
+            val sourceRepoValue = sourceRepo.text.toString().trim()
+            val simulationRepoValue = simulationRepo.text.toString().trim()
+            val workflowValue = simulationWorkflow.text.toString().trim()
+            val tokenValue = secureStore.get("github_token") ?: ""
+            val endpointValue = secureStore.get("model_endpoint") ?: endpoint.text.toString().trim()
+            val modelValue = secureStore.get("model_name") ?: model.text.toString().trim()
+            val keyValue = secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
             validate.isEnabled = false
             output.text = "Validating GitHub, LLM backend, source repo and Simulation Matrix..."
             worker.execute {
                 val result = try {
                     agent.callAttr(
                         "validate_configuration",
-                        sourceRepo.text.toString().trim(),
-                        simulationRepo.text.toString().trim(),
-                        simulationWorkflow.text.toString().trim(),
-                        secureStore.get("github_token") ?: "",
-                        secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
-                        secureStore.get("model_name") ?: model.text.toString().trim(),
-                        secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
+                        sourceRepoValue, simulationRepoValue, workflowValue,
+                        tokenValue, endpointValue, modelValue, keyValue
                     ).toString()
                 } catch (e: Exception) {
                     "BLOCKED: configuration validation failed: ${e.message ?: "unknown error"}"
@@ -128,21 +130,20 @@ class MainActivity : ComponentActivity() {
                 it.contains("develop") || it.contains("implement") || it.contains("run simulation") ||
                 it.contains("simulation matrix") || it.contains("dispatch workflow")
             }
+            val sourceRepoValue = sourceRepo.text.toString().trim()
+            val simulationRepoValue = simulationRepo.text.toString().trim()
+            val tokenValue = secureStore.get("github_token") ?: ""
+            val endpointValue = secureStore.get("model_endpoint") ?: endpoint.text.toString().trim()
+            val modelValue = secureStore.get("model_name") ?: model.text.toString().trim()
+            val keyValue = secureStore.get("model_api_key") ?: modelKey.text.toString().trim()
             val execute = {
                 run.isEnabled = false
                 output.text = "Agent is working: preflight, simulation, execution and verification..."
                 worker.execute {
                     val result = try {
                         agent.callAttr(
-                            "handle_command",
-                            text,
-                            sourceRepo.text.toString().trim(),
-                            secureStore.get("github_token") ?: "",
-                            explicitWrite,
-                            secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
-                            secureStore.get("model_name") ?: model.text.toString().trim(),
-                            secureStore.get("model_api_key") ?: modelKey.text.toString().trim(),
-                            simulationRepo.text.toString().trim()
+                            "handle_command", text, sourceRepoValue, tokenValue,
+                            explicitWrite, endpointValue, modelValue, keyValue, simulationRepoValue
                         ).toString()
                     } catch (e: Exception) {
                         "VERIFICATION_FAILED: agent execution failed: ${e.message ?: "unknown error"}"
