@@ -207,6 +207,11 @@ class AutonomousPhoneRuntime:
     def _is_verified_success(candidate, observations):
         """Fail closed unless task-specific verification evidence is present."""
         text=candidate.lower()
+        if any(marker in text for marker in (
+            "not done", "not completed", "no success", "unsuccessful",
+            "failed", "failure", "blocked", "incomplete", "not verified"
+        )):
+            return False
         if not any(marker in text for marker in ("success", "completed", "done")):
             return False
         for observation in observations:
