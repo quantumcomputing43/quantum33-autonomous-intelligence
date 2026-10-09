@@ -18,7 +18,7 @@ class TaskVerifierRegistry:
         text = command.strip()
         patterns = (
             (r'^verify file exists: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<path>[^\s]+)(?: ref=(?P<ref>[A-Za-z0-9_./-]+))?$', "file_exists"),
-            (r'^verify file contains: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<path>[^\s]+) literal=(?P<literal>.+)),
+            (r'^verify file contains: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<path>[^\s]+) literal=(?P<literal>.+)$', "file_contains"),
             (r'^verify workflow run: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) run_id=(?P<run_id>[0-9]+) conclusion=(?P<conclusion>success|failure|cancelled|timed_out)$', "workflow_run"),
             (r'^verify artifact exists: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) run_id=(?P<run_id>[0-9]+) name=(?P<name>[^\s]+)$', "artifact_exists"),
         )
