@@ -141,7 +141,7 @@ class MainActivity : ComponentActivity() {
                             explicitWrite,
                             secureStore.get("model_endpoint") ?: endpoint.text.toString().trim(),
                             secureStore.get("model_name") ?: model.text.toString().trim(),
-                            secureStore.get("model_api_key") ?: "",
+                            secureStore.get("model_api_key") ?: modelKey.text.toString().trim(),
                             simulationRepo.text.toString().trim()
                         ).toString()
                     } catch (e: Exception) {
