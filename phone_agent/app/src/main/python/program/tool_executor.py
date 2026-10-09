@@ -1,4 +1,5 @@
 import json
+from program.task_verifier import TaskVerifierRegistry
 
 class ToolExecutor:
     """Allow-listed execution. Repository writes and workflow dispatches require explicit human authorization."""
