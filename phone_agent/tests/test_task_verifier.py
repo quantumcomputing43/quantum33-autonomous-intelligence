@@ -110,6 +110,32 @@ def test_latest_workflow_fails_when_requested_conclusion_differs():
     assert result["evidence"][0]["actual_conclusion"] == "success"
 
 
+def test_confirmed_failed_workflow_does_not_satisfy_success_gate():
+    class FailedRunGitHub(FakeGitHub):
+        def workflow_run(self, repository, run_id):
+            result = super().workflow_run(repository, run_id)
+            result["conclusion"] = "failure"
+            return result
+
+        def workflow_runs_for_ref(self, repository, ref, per_page=100):
+            payload = super().workflow_runs_for_ref(repository, ref, per_page)
+            payload["workflow_runs"][0]["conclusion"] = "failure"
+            return payload
+
+    github = FailedRunGitHub()
+    exact_run = TaskVerifierRegistry(github).verify_command(
+        "verify workflow run: example/repo run_id=123 conclusion=failure"
+    )
+    latest_run = TaskVerifierRegistry(github).verify_command(
+        "verify latest workflow: example/repo workflow=.github/workflows/build-phone-agent.yml ref=aew/simulation-verification-hardening conclusion=failure"
+    )
+    # The factual assertion is checked, but a failed build must not authorize SUCCESS.
+    assert exact_run["status"] == "PASS"
+    assert exact_run["goal_match"] is False
+    assert latest_run["status"] == "PASS"
+    assert latest_run["goal_match"] is False
+
+
 def test_unstructured_command_is_blocked_not_guessed():
     result = TaskVerifierRegistry(FakeGitHub()).verify_command(
         "everything is finished, trust me"
