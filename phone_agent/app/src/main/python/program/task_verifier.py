@@ -21,6 +21,7 @@ class TaskVerifierRegistry:
             (r'^verify file contains: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) (?P<path>[^\s]+) literal=(?P<literal>.+)$', "file_contains"),
             (r'^verify workflow run: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) run_id=(?P<run_id>[0-9]+) conclusion=(?P<conclusion>success|failure|cancelled|timed_out)$', "workflow_run"),
             (r'^verify artifact exists: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) run_id=(?P<run_id>[0-9]+) name=(?P<name>[^\s]+)$', "artifact_exists"),
+            (r'^verify latest workflow: (?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) workflow=(?P<workflow>[^\s]+) ref=(?P<ref>[A-Za-z0-9_./-]+) conclusion=(?P<conclusion>success|failure|cancelled|timed_out)$', "latest_workflow"),
         )
         for pattern, kind in patterns:
             match = re.fullmatch(pattern, text, flags=re.IGNORECASE)
@@ -89,6 +90,42 @@ class TaskVerifierRegistry:
                     "passed": passed,
                 }]
                 return self._result(contract, passed, "Workflow conclusion checked against exact GitHub run.", evidence)
+
+            if contract["type"] == "latest_workflow":
+                branch = self.github.branch(repo, contract["ref"])
+                branch_sha = ((branch.get("commit") or {}).get("sha")
+                              if isinstance(branch, dict) else None)
+                payload = self.github.workflow_runs_for_ref(repo, contract["ref"])
+                runs = payload.get("workflow_runs", []) if isinstance(payload, dict) else []
+                wanted = contract["workflow"].split("@", 1)[0]
+                matches = [
+                    run for run in runs
+                    if str(run.get("path", "")).split("@", 1)[0] == wanted
+                    and run.get("status") == "completed"
+                ]
+                matches.sort(key=lambda run: str(run.get("updated_at", "")), reverse=True)
+                latest = matches[0] if matches else None
+                actual = str((latest or {}).get("conclusion") or "").lower()
+                run_sha = (latest or {}).get("head_sha")
+                passed = bool(branch_sha and latest and run_sha == branch_sha
+                              and actual == contract["conclusion"])
+                evidence = [{
+                    "source": "github.actions.latest_workflow_for_ref",
+                    "repository": repo,
+                    "workflow": wanted,
+                    "ref": contract["ref"],
+                    "branch_head_sha": branch_sha,
+                    "run_id": (latest or {}).get("id"),
+                    "run_head_sha": run_sha,
+                    "actual_conclusion": actual or None,
+                    "expected_conclusion": contract["conclusion"],
+                    "run_url": (latest or {}).get("html_url"),
+                    "passed": passed,
+                }]
+                detail = ("Latest completed workflow run matches branch HEAD and requested conclusion."
+                          if passed else
+                          "No qualifying run for current branch HEAD, or latest run conclusion differs.")
+                return self._result(contract, passed, detail, evidence)
 
             if contract["type"] == "artifact_exists":
                 payload = self.github.workflow_artifacts(repo, int(contract["run_id"]))
