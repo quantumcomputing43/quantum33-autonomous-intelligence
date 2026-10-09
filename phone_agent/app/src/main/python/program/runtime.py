@@ -141,7 +141,7 @@ class AutonomousPhoneRuntime:
                 final="BLOCKED: model reasoning unavailable."
                 break
             try:
-                raw=json.loads(reasoning["response"])
+                raw=ToolExecutor.parse_json_object(reasoning["response"])
                 plan=ToolExecutor.parse_actions(reasoning["response"])
                 if raw.get("final"):
                     candidate=str(raw["final"])
@@ -201,10 +201,21 @@ class AutonomousPhoneRuntime:
 
     @staticmethod
     def _is_verified_success(candidate, observations):
+        """Fail closed unless task-specific verification evidence is present."""
         text=candidate.lower()
-        if "success" not in text and "completed" not in text and "done" not in text:
+        if not any(marker in text for marker in ("success", "completed", "done")):
             return False
-        return any(o.get("status")=="OK" for o in observations)
+        for observation in observations:
+            if observation.get("kind") != "verification":
+                continue
+            if observation.get("status") != "PASS":
+                continue
+            if observation.get("goal_match") is not True:
+                continue
+            evidence = observation.get("evidence")
+            if isinstance(evidence, list) and evidence:
+                return True
+        return False
 
     def _record(self,command,repository,decision,message,steps=0):
         row={"timestamp":datetime.now(timezone.utc).isoformat(),"command":command,
